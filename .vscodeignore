@@ -1,0 +1,17 @@
+src/**
+tests/**
+scripts/**
+.github/**
+.test/**
+artifacts/**
+node_modules/**
+tsconfig.json
+build.mjs
+package-lock.json
+*.vsix
+**/*.map
+.gitignore
+PUBLISHING.md
+CONTRIBUTING.md
+assets/*.svg
+!assets/activity-bar.svg

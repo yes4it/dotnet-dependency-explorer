@@ -1,0 +1,219 @@
+{
+  "name": "dotnet-dependency-explorer",
+  "displayName": ".NET Dependency Explorer",
+  "description": "Explore project references, redundant links and dependency cycles in an interactive offline graph.",
+  "version": "0.1.4",
+  "publisher": "publisher-id-required",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": true
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "dotnetDependencyExplorer.open",
+        "title": "Show Project Dependencies",
+        "category": ".NET Dependency Explorer"
+      },
+      {
+        "command": "dotnetDependencyExplorer.refresh",
+        "title": "Refresh",
+        "category": ".NET Dependency Explorer",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "dotnetDependencyExplorer.open",
+          "when": "resourceExtname == .csproj",
+          "group": "navigation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "dotnetDependencyExplorer.refresh",
+          "when": "view == dotnetDependencyExplorer.sidebar",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": ".NET Dependency Explorer",
+      "properties": {
+        "dotnetDependencyExplorer.domainRules": {
+          "type": "array",
+          "default": [
+            {
+              "domain": "Tests",
+              "keywords": [
+                "test",
+                "specs"
+              ]
+            },
+            {
+              "domain": "Data access",
+              "keywords": [
+                "persistence",
+                "repository",
+                "storage",
+                "dataaccess"
+              ]
+            },
+            {
+              "domain": "Contracts and models",
+              "keywords": [
+                "contracts",
+                "abstractions",
+                "models",
+                "dtos"
+              ]
+            },
+            {
+              "domain": "Messaging",
+              "keywords": [
+                "messaging",
+                "outbox",
+                "eventbus"
+              ]
+            },
+            {
+              "domain": "Workers",
+              "keywords": [
+                "worker",
+                "listener",
+                "scheduler"
+              ]
+            },
+            {
+              "domain": "Infrastructure",
+              "keywords": [
+                "infrastructure",
+                "logging",
+                "telemetry",
+                "security"
+              ]
+            },
+            {
+              "domain": "Applications",
+              "keywords": [
+                ".api",
+                ".web",
+                ".host",
+                ".app"
+              ]
+            }
+          ],
+          "description": "First matching rule assigns a domain. Keywords are case-insensitive substrings of the project name. An empty list disables classification.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "keywords"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string",
+                "minLength": 1
+              },
+              "keywords": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "dotnetDependencyExplorer.labelPrefixes": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Optional case-sensitive prefixes to hide in graph labels. Full names remain available in tooltips and details."
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "dotnetDependencyExplorer",
+          "title": ".NET Dependencies",
+          "icon": "assets/activity-bar.svg"
+        }
+      ]
+    },
+    "views": {
+      "dotnetDependencyExplorer": [
+        {
+          "id": "dotnetDependencyExplorer.sidebar",
+          "name": "Dependencies"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "node build.mjs",
+    "test": "npm run build && node --test tests/*.test.cjs",
+    "vscode:prepublish": "npm run check && npm run build",
+    "package": "npm run check:release && vsce package --no-dependencies --out artifacts/",
+    "check:release": "node scripts/check-release.mjs",
+    "configure:release": "node scripts/configure-release.mjs",
+    "package:preview": "vsce package --no-dependencies --allow-missing-repository --out artifacts/dotnet-dependency-explorer-preview.vsix",
+    "test:host": "node scripts/test-host.mjs",
+    "demo": "npm run build && node scripts/make-demo.cjs"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^5.11.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "activationEvents": [
+    "onWebviewPanel:dotnetDependencyExplorer.graph",
+    "onView:dotnetDependencyExplorer.sidebar"
+  ],
+  "icon": "assets/icon.png",
+  "keywords": [
+    "dotnet",
+    "csharp",
+    "dependencies",
+    "architecture",
+    "cycles"
+  ],
+  "galleryBanner": {
+    "color": "#101827",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yes4it/dotnet-dependency-explorer.git"
+  },
+  "homepage": "https://github.com/yes4it/dotnet-dependency-explorer#readme",
+  "bugs": {
+    "url": "https://github.com/yes4it/dotnet-dependency-explorer/issues"
+  }
+}
