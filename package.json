@@ -2,7 +2,7 @@
   "name": "dotnet-dependency-explorer",
   "displayName": ".NET Dependency Explorer",
   "description": "Explore project references, redundant links and dependency cycles in an interactive offline graph.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "publisher": "YES4IT",
   "license": "MIT",
   "engines": {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1
+
+- Refresh the listing screenshots, which still showed 0.1.4, and illustrate the pasta scale and the Cytoscape canvas.
+- Stop the score tile from stretching across the side panel and wrapping its own label.
+- Fold the grade breakdown behind a summary in the side panel, so a selected project keeps room for its dependency lists. The full breakdown stays one click away, in the scale.
+- Propose one move per cycle group instead of one per reference: both directions of a two-project cycle are the same decision.
+
 ## 0.4.0
 
 - Click the pasta index, in the header or in the side panel, to open the **scale**: every shape, the rule behind it, and what your graph measures against that rule.
