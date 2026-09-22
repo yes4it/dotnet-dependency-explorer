@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0
+
+- Click the pasta index, in the header or in the side panel, to open the **scale**: every shape, the rule behind it, and what your graph measures against that rule.
+- Price the next move. Breaking a cycle or dropping redundant references is scored by replaying the index on the graph the change would leave, so the figure is a result rather than a projection.
+- Collapse the details panel from its chevron, like the toolbars. The choice is kept with the rest of the view.
+- Speed up the Cytoscape wheel, which was running at a quarter of the normal rate, and add the missing zoom buttons to the canvas toolbar.
+
 ## 0.3.0
 
 - Add the **pasta index**: a 0-100 coupling score and a shape, shown in the header and explained in the side panel.

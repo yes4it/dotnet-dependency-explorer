@@ -3,7 +3,7 @@ const controlIds=['mode','domain','search','tests','cycles','direction','depth',
 let restoring=true;
 function saveView(){
     if(restoring||!vscodeApi)return;
-    const state={selectedUri:selected===null?null:D.nodes[selected]?.uri,scale,pan:{...graphPan},controlsCollapsed:document.querySelector('header').classList.contains('collapsed'),controls:Object.fromEntries(controlIds.map(id=>[id,$(id).type==='checkbox'?$(id).checked:$(id).value])),scrollLeft:($('graphViewport')||$('canvas')).scrollLeft,scrollTop:($('graphViewport')||$('canvas')).scrollTop};
+    const state={selectedUri:selected===null?null:D.nodes[selected]?.uri,scale,pan:{...graphPan},controlsCollapsed:document.querySelector('header').classList.contains('collapsed'),detailsCollapsed:document.querySelector('main').classList.contains('narrow'),controls:Object.fromEntries(controlIds.map(id=>[id,$(id).type==='checkbox'?$(id).checked:$(id).value])),scrollLeft:($('graphViewport')||$('canvas')).scrollLeft,scrollTop:($('graphViewport')||$('canvas')).scrollTop};
     vscodeApi.setState(state);vscodeApi.postMessage({type:'state',state});
 }
 const baseSidebar=sidebar;
@@ -12,6 +12,8 @@ const baseRender=render;
 render=function(){baseRender();saveView();};
 const baseSetControlsCollapsed=setControlsCollapsed;
 setControlsCollapsed=function(collapsed){baseSetControlsCollapsed(collapsed);saveView();};
+const baseSetDetailsCollapsed=setDetailsCollapsed;
+setDetailsCollapsed=function(collapsed){baseSetDetailsCollapsed(collapsed);saveView();};
 const baseZoom=zoom;
 zoom=function(){baseZoom();saveView();};
 $('refresh').onclick=()=>{saveView();if(vscodeApi)vscodeApi.postMessage({type:'refresh'});else window.location.reload();};
@@ -22,6 +24,7 @@ saveGraphImage=function(dataUri){if(vscodeApi)vscodeApi.postMessage({type:'expor
 const state=window.initialState||vscodeApi?.getState()||{};
 for(const id of controlIds){const value=state.controls?.[id];if(value!==undefined){if($(id).type==='checkbox')$(id).checked=Boolean(value);else $(id).value=String(value);}}
 setControlsCollapsed(Boolean(state.controlsCollapsed));
+setDetailsCollapsed(Boolean(state.detailsCollapsed));
 const savedNode=D.nodes.find(n=>n.uri===state.selectedUri);
 selected=savedNode?.id??null;
 if(savedNode?.test)$('tests').checked=true;

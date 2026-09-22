@@ -35,7 +35,7 @@ function destroyCytoscape(){
         cytoscapeMemo={signature:cytoscapeSignature,zoom:cytoscapeInstance.zoom(),pan:cytoscapeInstance.pan()};
         cytoscapeInstance.destroy();cytoscapeInstance=null;
     }
-    for(const id of ['cytoFit','cytoRelayout','cytoPng','cytoFocus']){
+    for(const id of ['cytoFit','cytoRelayout','cytoPng','cytoFocus','cytoMinus','cytoPlus']){
         const button=$(id);if(button){button.onclick=null;button.disabled=true;}
     }
     if($('cytoZoom'))$('cytoZoom').textContent='—';
@@ -100,7 +100,7 @@ function cytoscapeGraph(nodes,edges){
     // fit:false keeps the constructor layout from racing the real one below, which
     // would otherwise centre the viewport on nodes still stacked at the origin.
     const cy=cytoscape({container:viewport,elements,style,layout:{name:'preset',fit:false,animate:false},
-        wheelSensitivity:0.25,minZoom:0.04,maxZoom:3,textureOnViewport:nodes.length>400});
+        wheelSensitivity:0.8,minZoom:0.04,maxZoom:3,textureOnViewport:nodes.length>400});
     const signature=`${$('cytoLayout').value}|${nodes.map(n=>n.id).join(',')}|${edges.length}`;
     cytoscapeInstance=cy;cytoscapeSignature=signature;
     function options(name){
@@ -161,11 +161,16 @@ function cytoscapeGraph(nodes,edges){
     cy.on('tap','node',event=>{const id=idOf(event.target);if(id!==selected){selected=id;render();}});
     cy.on('tap',event=>{if(event.target===cy&&selected!==null){selected=null;render();}});
     $('cytoFit').onclick=()=>cy.fit(undefined,40);
+    // Zoom around the middle of the viewport, so the buttons behave like the wheel.
+    const clampZoom=level=>Math.min(cy.maxZoom(),Math.max(cy.minZoom(),level));
+    const step=factor=>cy.zoom({level:clampZoom(cy.zoom()*factor),
+        renderedPosition:{x:viewport.clientWidth/2,y:viewport.clientHeight/2}});
+    $('cytoMinus').onclick=()=>step(1/1.3);$('cytoPlus').onclick=()=>step(1.3);
     $('cytoRelayout').onclick=()=>runLayout(true);
     // maxWidth/maxHeight keep a wide level layout from producing a multi-hundred-megapixel image.
     $('cytoPng').onclick=()=>saveGraphImage(cy.png({full:true,bg:'#101827',maxWidth:4096,maxHeight:4096}));
     $('cytoFocus').onclick=()=>{if(selected!==null)choose(selected);};
-    for(const id of ['cytoFit','cytoRelayout','cytoPng'])$(id).disabled=false;
+    for(const id of ['cytoFit','cytoRelayout','cytoPng','cytoMinus','cytoPlus'])$(id).disabled=false;
     $('cytoFocus').disabled=selected===null;
     runLayout(false);
 }

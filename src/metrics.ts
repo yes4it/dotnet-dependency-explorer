@@ -10,15 +10,64 @@ import type { ProjectNode, Edge } from './analyzer';
 
 export interface PastaShape { key: string; name: string; emoji: string; color: string; summary: string; advice: string }
 export interface Driver { label: string; cost: number }
+// One rung of the scale, already evaluated against this graph: the rule in
+// words, what the graph actually measures, and whether the rung is reached.
+export interface ScaleEntry { key: string; name: string; emoji: string; color: string; rule: string; measured: string; met: boolean; current: boolean }
+// A refactoring priced by replaying the score on the graph it would produce.
+export interface Move { label: string; detail: string; score: number; gain: number; shape: string; emoji: string }
 export interface Architecture {
   graded: boolean; projects: number; references: number;
   propagationCost: number; cycleMass: number; largestCycle: number; cycleGroups: number;
   redundancy: number; modularity: number; modular: boolean; depth: number;
   hubShare: number; hub: string; score: number; shape: PastaShape; drivers: Driver[];
+  scale: ScaleEntry[]; moves: Move[];
 }
 
 // Tarjan. Groups come out in reverse topological order: a component is emitted
 // only once everything it reaches has been, which the reachability pass relies on.
+// Removing the back edges of an order sorted by out-degree minus in-degree is the
+// Eades-Lin-Smyth heuristic: cheap, and far closer to the minimum set than
+// cutting on the traversal order would be.
+function feedbackArcs(data:{nodes:ProjectNode[];edges:Edge[]},group:Int32Array,cyclic:boolean[],index:Map<number,number>):Edge[] {
+  const rank=new Map<number,number>();
+  for(let c=0;c<cyclic.length;c++){
+    if(!cyclic[c])continue;
+    const members=data.nodes.filter(node=>index.has(node.id)&&group[index.get(node.id)!]===c).map(node=>node.id);
+    const inside=(id:number,outgoing:boolean)=>data.edges.filter(e=>(outgoing?e.source:e.target)===id&&
+      members.includes(outgoing?e.target:e.source)).length;
+    members.sort((a,b)=>(inside(b,true)-inside(b,false))-(inside(a,true)-inside(a,false)));
+    members.forEach((id,position)=>rank.set(id,position));
+  }
+  return data.edges.filter(e=>rank.has(e.source)&&rank.has(e.target)&&
+    group[index.get(e.source)!]===group[index.get(e.target)!]&&rank.get(e.source)!>=rank.get(e.target)!);
+}
+function priceMoves(data:{nodes:ProjectNode[];edges:Edge[]},base:Architecture,group:Int32Array,
+    cyclic:boolean[],redundantPair:Set<string>):Move[] {
+  const index=new Map(data.nodes.filter(node=>!node.test).map((node,i)=>[node.id,i]));
+  const name=new Map(data.nodes.map(node=>[node.id,node.name]));
+  const replay=(edges:Edge[]):Architecture=>computeArchitecture({nodes:data.nodes,edges},false);
+  const move=(label:string,detail:string,edges:Edge[]):Move=>{
+    const after=replay(edges);
+    return {label,detail,score:after.score,gain:after.score-base.score,shape:after.shape.name,emoji:after.shape.emoji};
+  };
+  const moves:Move[]=[];
+  const inCycle=data.edges.filter(e=>index.has(e.source)&&index.has(e.target)&&
+    group[index.get(e.source)!]===group[index.get(e.target)!]&&cyclic[group[index.get(e.source)!]]);
+  for(const edge of inCycle.slice(0,candidateLimit))
+    moves.push(move(`Invert ${name.get(edge.source)} → ${name.get(edge.target)}`,
+      'One reference, through an interface both sides already reach.',
+      data.edges.filter(e=>e!==edge)));
+  const arcs=feedbackArcs(data,group,cyclic,index);
+  if(arcs.length>1)moves.push(move('Break every cycle',
+    `${arcs.length} references to invert, across ${base.cycleGroups} group(s).`,
+    data.edges.filter(e=>!arcs.includes(e))));
+  const redundant=data.edges.filter(e=>index.has(e.source)&&index.has(e.target)&&
+    redundantPair.has(`${group[index.get(e.source)!]}:${group[index.get(e.target)!]}`));
+  if(redundant.length)moves.push(move(`Drop ${redundant.length} redundant reference${redundant.length>1?'s':''}`,
+    'Each one duplicates a path the graph already provides; deleting them changes no behaviour.',
+    data.edges.filter(e=>!redundant.includes(e))));
+  return moves.filter(entry=>entry.gain>=1).sort((a,b)=>b.gain-a.gain).slice(0,5);
+}
 export function stronglyConnected(count: number, adjacency: number[][]): number[][] {
   const indices=new Map<number,number>(),low=new Map<number,number>(),stack:number[]=[],active=new Set<number>(),groups:number[][]=[];
   function visit(v:number):void {
@@ -54,41 +103,58 @@ const clamp=(value:number,low:number,high:number):number=>Math.min(high,Math.max
 
 // First matching rule wins, like the domain rules. Order encodes severity:
 // a cycle outranks every other observation about the same graph.
-const shapes:(PastaShape&{when:(m:Architecture)=>boolean})[]=[
+const shapes:(PastaShape&{when:(m:Architecture)=>boolean;rule:string;measure:(m:Architecture)=>string})[]=[
   {key:'spaghetti',name:'Spaghetti',emoji:'🍝',color:'#ff667a',
     summary:'Dependency cycles run through a significant part of the solution. Build order, testing and extraction all fight you.',
     advice:'Break the largest cycle first: invert one reference through an interface placed in the project that both sides already use.',
+    rule:'A cycle of four projects or more, three separate cycles, or a third of the projects caught in cycles of three or more',
+    measure:m=>`largest cycle ${m.largestCycle}, ${m.cycleGroups} group(s), ${percent(m.cycleMass)} of projects`,
     when:m=>m.largestCycle>=4||m.cycleGroups>=3||(m.cycleMass>=0.3&&m.largestCycle>=3)},
   {key:'fusilli',name:'Fusilli',emoji:'🌀',color:'#f5b454',
     summary:'The structure is twisted rather than broken: a few cycles, or many references that duplicate a path already present.',
     advice:'Remove the redundant references first. They cost nothing to delete and they hide the real shape of the graph.',
+    rule:'Any cycle at all, or three references in ten duplicating a path that already exists',
+    measure:m=>`${m.cycleGroups} cycle group(s), ${percent(m.redundancy)} redundant references`,
     when:m=>m.cycleGroups>0||m.redundancy>=0.3},
   {key:'gnocchi',name:'Gnocchi',emoji:'🥔',color:'#e8b87b',
     summary:'One project carries almost everything. The graph is a hub with satellites rather than a structure.',
     advice:'Split the hub along the lines of what its users actually consume, starting with the group that shares the fewest types.',
+    rule:'One project referenced by 60% of the others, over a graph no more than two layers deep',
+    measure:m=>`most referenced ${percent(m.hubShare)}, ${m.depth} layer(s)`,
     when:m=>m.hubShare>=0.6&&m.depth<=2},
   {key:'ravioli',name:'Ravioli',emoji:'🥟',color:'#d6a5cc',
     summary:'Many small projects, barely connected. Encapsulation is not the problem; the project count is.',
     advice:'Merge projects that are always referenced together. A project boundary should buy you an independent build or an independent release.',
+    rule:'Twelve projects or more, fewer than 0.8 references each, and almost no transitive reach',
+    measure:m=>`${m.projects} projects, ${(m.references/Math.max(1,m.projects)).toFixed(1)} references each, reach ${percent(m.propagationCost)}`,
     when:m=>m.projects>=12&&m.references/m.projects<0.8&&m.propagationCost<0.08},
   {key:'penne',name:'Penne',emoji:'🧩',color:'#83e0b7',
     summary:'Real modules with thin connections between them. A change stays inside its tube.',
     advice:'Keep it there: watch the propagation cost when you add a reference across two modules.',
+    rule:'Modularity of 0.30 or more against the declared domains, with a change reaching under a quarter of the solution',
+    measure:m=>m.modular?`modularity ${m.modularity.toFixed(2)}, reach ${percent(m.propagationCost)}`:'no domain declared, modularity cannot be read',
     when:m=>m.modular&&m.modularity>=0.3&&m.propagationCost<0.25},
   {key:'lasagne',name:'Lasagne',emoji:'🍰',color:'#78b6ff',
     summary:'Clean horizontal layers and no cycles, but the layers are wide: a change travels down through all of them.',
     advice:'Layering is working. The next gain is vertical: group projects by feature so a change touches one slice instead of every layer.',
+    rule:'Four dependency layers or more',
+    measure:m=>`${m.depth} layer(s)`,
     when:m=>m.depth>=4},
   {key:'macaroni',name:'Macaroni',emoji:'🍜',color:'#b5c2d6',
     summary:'Ordinary. No cycles, no dominant hub, no strong modular or layered signal either.',
     advice:'Decide which shape you want before the graph decides for you. The simulator compares your references against a target model.',
+    rule:'Everything the rules above leave',
+    measure:()=>'—',
     when:()=>true},
 ];
 const unmeasured:PastaShape={key:'unmeasured',name:'Not enough projects',emoji:'❔',color:'#b5c2d6',
   summary:'Three production projects are needed before coupling means anything.',
   advice:'Come back when the solution grows, or look at the dependency graph directly.'};
 
-export function computeArchitecture(data:{nodes:ProjectNode[];edges:Edge[]}):Architecture {
+// Every move below is priced by rebuilding the metrics on the edges that would
+// remain. Simulations do not simulate, so recursion stops at the first level.
+const moveLimit=400, candidateLimit=60;
+export function computeArchitecture(data:{nodes:ProjectNode[];edges:Edge[]},simulate=true):Architecture {
   // Test projects reference production code without being part of the design.
   // Counting them makes every solution look worse and hides real movement.
   const kept=data.nodes.filter(n=>!n.test);
@@ -98,7 +164,7 @@ export function computeArchitecture(data:{nodes:ProjectNode[];edges:Edge[]}):Arc
     .map(e=>({source:index.get(e.source)!,target:index.get(e.target)!}));
   const empty:Architecture={graded:false,projects:n,references:edges.length,propagationCost:0,cycleMass:0,
     largestCycle:0,cycleGroups:0,redundancy:0,modularity:0,modular:false,depth:0,hubShare:0,hub:'',
-    score:0,shape:unmeasured,drivers:[]};
+    score:0,shape:unmeasured,drivers:[],scale:[],moves:[]};
   if(n<3)return empty;
 
   const adjacency=kept.map(()=>[] as number[]);
@@ -178,5 +244,8 @@ export function computeArchitecture(data:{nodes:ProjectNode[];edges:Edge[]}):Arc
   const metrics:Architecture={...empty,graded:true,propagationCost,cycleMass,largestCycle,cycleGroups,
     redundancy,modularity,modular,depth,hubShare,hub,score,drivers,shape:unmeasured};
   metrics.shape=shapes.find(shape=>shape.when(metrics))!;
+  metrics.scale=shapes.map(shape=>({key:shape.key,name:shape.name,emoji:shape.emoji,color:shape.color,
+    rule:shape.rule,measured:shape.measure(metrics),met:shape.when(metrics),current:shape.key===metrics.shape.key}));
+  if(simulate&&n<=moveLimit)metrics.moves=priceMoves(data,metrics,group,cyclic,redundantPair);
   return metrics;
 }

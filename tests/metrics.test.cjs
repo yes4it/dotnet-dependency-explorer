@@ -70,3 +70,24 @@ test('a clean layered solution keeps a high score and reports no driver',()=>{
  assert.equal(m.drivers.length,0);assert.equal(m.score,100);
  assert.equal(m.cycleGroups,0);
 });
+test('the scale carries every shape, evaluated, with exactly one current rung',()=>{
+ const m=analyze([project('A',ref('B')),project('B',ref('C')),project('C',ref('A')),project('D')]).metrics;
+ assert.equal(m.scale.length,7);
+ const current=m.scale.filter(rung=>rung.current);
+ assert.equal(current.length,1);assert.equal(current[0].key,m.shape.key);
+ assert.equal(current[0].met,true);
+ assert.ok(m.scale.every(rung=>rung.rule&&rung.measured),'every rung states its rule and what the graph measures');
+});
+test('moves are priced by replaying the score, not estimated',()=>{
+ const m=analyze([project('A',ref('B')),project('B',ref('A')),project('C',ref('A')),project('D',ref('A'))]).metrics;
+ const best=m.moves[0];
+ assert.ok(best,'a cycle must produce at least one move');
+ assert.ok(best.gain>0&&best.score===m.score+best.gain,'the gain must be the difference to the replayed score');
+ assert.ok(m.moves.every((move,i,list)=>i===0||list[i-1].gain>=move.gain),'moves are ranked by gain');
+ assert.ok(m.moves.length<=5);
+});
+test('a graph with nothing to fix proposes no move',()=>{
+ const m=analyze([project('Api',ref('Domain')),project('Worker',ref('Domain')),project('Domain'),
+  project('Reporting',ref('Domain'))]).metrics;
+ assert.equal(m.moves.length,0);
+});

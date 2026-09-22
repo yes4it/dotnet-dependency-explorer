@@ -33,7 +33,7 @@ For a locally downloaded VSIX, run **Extensions: Install from VSIX...** first.
 
 The circular-arrow **Refresh** button at the start of the toolbar rescans project references while preserving your current view.
 
-The chevron at the top right collapses the three toolbars into a single status line and gives their height back to the graph. The choice is kept with the rest of the view.
+The chevron at the top right collapses the three toolbars into a single status line and gives their height back to the graph. A second chevron, at the top of the details panel, folds that panel down to a rail. Both choices are kept with the rest of the view.
 
 Drag the graph background with the left mouse button to pan. The middle mouse button also works over cards. **Fit** resets the offset; refresh preserves it.
 
@@ -50,6 +50,8 @@ Three properties cost points, because fixing any of them is unambiguously an imp
 - **Redundant references**: a reference to a project another path already reaches.
 
 Depth, modularity and the most-referenced project describe the shape without costing points, because none of them is a defect on its own.
+
+**Click the index**, in the header or in the side panel, to open the scale. It lists every shape with the rule behind it and what your graph measures against that rule, so you can see why you landed where you did and what separates you from the next rung. Below it, the moves that would change the grade are priced by recomputing the index on the graph the change would leave behind: breaking a given cycle, inverting every cycle at once, or dropping the redundant references. The figures are results, not projections. Solutions above 400 projects skip the pricing.
 
 | Shape | What it means |
 | --- | --- |
@@ -68,7 +70,7 @@ The index measures coupling **between assemblies**. Two projects with no referen
 Choose **Cytoscape graph** in the View menu. Domain, search, tests, cycles, direction, depth and **Hide redundant links** apply exactly as in the project graph; only the renderer changes.
 
 - Pick a layout: *Levels* follows dependency order, *Force-directed* spreads projects apart, *Breadth-first* starts from the selected project, *Concentric* puts the most referenced projects in the middle, *Circle* and *Grid* are fixed arrangements. Each entry in the menu carries a tooltip describing what it shows, as do the buttons next to it.
-- Drag to pan, scroll to zoom, drag a project to move it. **Fit** reframes the graph and **Re-run layout** recomputes it.
+- Drag to pan, scroll to zoom, drag a project to move it. The **- / +** buttons zoom around the middle of the viewport, **Fit** reframes the graph and **Re-run layout** recomputes it.
 - Clicking a project filters around it without leaving the view; clicking the background clears the selection. **Open focus view** switches to the three-column layout.
 - Hovering a project or an arrow isolates its neighbourhood and shows the full name, domain, level, path and reference counts.
 - **Export PNG** saves the whole graph through the VS Code save dialog, capped at 4096 px per side.

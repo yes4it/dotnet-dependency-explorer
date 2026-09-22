@@ -8,14 +8,16 @@ document.querySelector('header').innerHTML = `<h1>.NET Dependency Explorer</h1><
 <div id="controls">
 <nav><button id="refresh" class="icon-button" title="Refresh project dependencies" aria-label="Refresh project dependencies"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M19 12a7 7 0 1 0-2 5"/></svg></button><label>View <select id="mode"><option value="domains">Domains</option><option value="graph">Project graph</option><option value="cytoscape">Cytoscape graph</option><option value="matrix">Project matrix</option></select></label><label>Domain <select id="domain"><option value="">All</option></select></label><input id="search" placeholder="Search projects…" aria-label="Search projects"><label><input id="tests" type="checkbox"> Tests</label><label><input id="cycles" type="checkbox"> Cycles only</label><button id="reset">Reset</button></nav>
 <nav id="graphOptions"><label>Layout <select id="layout"><option value="focus">Project focus</option><option value="levels">By level</option></select></label><label id="neighborsOption"><input id="neighbors" type="checkbox"> Relations between neighbors</label><label>Explore <select id="direction"><option value="both">Both directions</option><option value="out">Dependencies</option><option value="in">Used by</option></select></label><label>Depth <select id="depth"><option value="1">1 hop</option><option value="2">2 hops</option><option value="99">Transitive</option></select></label><label title="Hide A → C when another visible path connects A to C."><input id="reduce" type="checkbox"> Hide redundant links</label><button id="fit">Fit</button><button id="minus" aria-label="Zoom out">−</button><output id="zoomLevel" aria-live="polite">100%</output><button id="plus" aria-label="Zoom in">+</button><button id="export">Export SVG</button></nav>
-<nav id="cytoOptions"><label title="How the canvas arranges projects. Each layout answers a different question.">Cytoscape layout <select id="cytoLayout"></select></label><button id="cytoRelayout" title="Compute the layout again from scratch. Force-directed produces a different arrangement each time.">Re-run layout</button><button id="cytoFit" title="Zoom and centre so every visible project fits the viewport.">Fit</button><output id="cytoZoom" aria-live="polite">100%</output><button id="cytoFocus" title="Open the selected project in the three-column focus view.">Open focus view</button><button id="cytoPng" title="Save the whole graph as a PNG image, not only the visible part.">Export PNG</button></nav>
+<nav id="cytoOptions"><label title="How the canvas arranges projects. Each layout answers a different question.">Cytoscape layout <select id="cytoLayout"></select></label><button id="cytoRelayout" title="Compute the layout again from scratch. Force-directed produces a different arrangement each time.">Re-run layout</button><button id="cytoFit" title="Zoom and centre so every visible project fits the viewport.">Fit</button><button id="cytoMinus" aria-label="Zoom out">−</button><output id="cytoZoom" aria-live="polite">100%</output><button id="cytoPlus" aria-label="Zoom in">+</button><button id="cytoFocus" title="Open the selected project in the three-column focus view.">Open focus view</button><button id="cytoPng" title="Save the whole graph as a PNG image, not only the visible part.">Export PNG</button></nav>
 </div>`;
 $('canvas').innerHTML = '<div id="count" aria-live="polite"></div><div id="content"></div>';
-document.querySelector('aside').innerHTML = `<section id="architecture"></section><h2 id="detailTitle">Most referenced projects</h2><div id="details"></div><details><summary>How to read this view</summary><p>A → B means A references B. Blue: a dependency of the selected project. Green: a project that uses it. Red: an edge in a project cycle. Dashed orange: a redundant reference because another path exists in the filtered view. It is still a real project reference.</p><p>Labels show complete project names unless you configure label prefixes. Hover a card or open its details for the full name.</p><p>Domains are inferred from project names. Reciprocal domain relationships do not prove that individual projects form a cycle.</p><p>Declared ProjectReference items across the open workspace. MSBuild conditions and imported files are not evaluated. NuGet, classes, namespaces and network calls are outside this analysis.</p><div id="warnings"></div></details>`;
+document.querySelector('aside').innerHTML = `<div id="detailsBar"><button id="toggleDetails" class="icon-button" type="button" aria-expanded="true" title="Hide the details panel" aria-label="Hide the details panel"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button></div><section id="architecture"></section><h2 id="detailTitle">Most referenced projects</h2><div id="details"></div><details><summary>How to read this view</summary><p>A → B means A references B. Blue: a dependency of the selected project. Green: a project that uses it. Red: an edge in a project cycle. Dashed orange: a redundant reference because another path exists in the filtered view. It is still a real project reference.</p><p>Labels show complete project names unless you configure label prefixes. Hover a card or open its details for the full name.</p><p>Domains are inferred from project names. Reciprocal domain relationships do not prove that individual projects form a cycle.</p><p>Declared ProjectReference items across the open workspace. MSBuild conditions and imported files are not evaluated. NuGet, classes, namespaces and network calls are outside this analysis.</p><div id="warnings"></div></details>`;
 const style = document.createElement('style');
 style.textContent = `.icon-button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:7px;flex-shrink:0}.icon-button svg{pointer-events:none}#canvas:has(#graph){cursor:grab}#canvas.panning,#canvas.panning *{cursor:grabbing!important;user-select:none!important}#graph{touch-action:none;transform-origin:0 0}body{height:100vh;display:flex;flex-direction:column}header{padding:18px 24px}main{flex:1;height:auto;min-height:0}#canvas{padding:18px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}.card{text-align:left;padding:20px;min-height:130px;border-top:4px solid var(--color)}.card strong{display:block;font-size:18px;margin-bottom:12px}.card span{display:block;color:#b5c2d6;margin-top:8px}#detailTitle{overflow-wrap:anywhere}#count{padding-bottom:14px;color:#b5c2d6}table{border-collapse:collapse;font-size:12px}th,td{padding:8px;border:1px solid #344156;text-align:center}th{background:#202f45}th:first-child{text-align:left;position:sticky;left:0;min-width:230px}td button{padding:5px;min-width:30px;background:transparent;border:0}details{margin-top:24px}summary{cursor:pointer}button:hover{border-color:#83e0b7}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #83e0b7}@media(max-width:900px){main{grid-template-columns:minmax(0,1fr) 250px}}`;
 style.textContent+="#canvas:has(#graph){display:flex;flex-direction:column;overflow:hidden;cursor:auto}#content:has(#graph){display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}#content:has(#graph)>p,#content:has(#graph)>button{flex-shrink:0}#graphViewport{position:relative;isolation:isolate;contain:paint;overflow:auto;flex:1;min-height:100px;border:1px solid #344156;border-radius:8px;cursor:grab;background:#101827}#graphViewport #graph{position:relative}#edgeInfo{position:static!important;z-index:auto!important} ";
-style.textContent+="#pastaBadge{display:inline-block;margin-right:12px;padding:2px 10px;border:1px solid;border-radius:999px;font-weight:600}#architecture{margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid #344156}.pasta{display:flex;align-items:center;gap:14px}.pastaScore{min-width:58px;padding:7px 0;border:2px solid;border-radius:10px;text-align:center;font-size:25px;font-weight:700;line-height:1.1}.pasta strong{display:block;font-size:17px}.pasta small{color:#b5c2d6}#architecture h2{font-size:12px;margin:17px 0 6px;color:#b5c2d6;text-transform:uppercase;letter-spacing:.05em}#architecture ul{margin:0;padding-left:18px}#architecture li{margin:5px 0;line-height:1.45}#architecture li b{color:#f5b454}#architecture>small{display:block;margin-top:14px;line-height:1.45}";
+style.textContent+="#detailsBar{text-align:right;margin-bottom:4px}main.narrow{grid-template-columns:minmax(0,1fr) 44px}main.narrow aside{padding:12px 5px}main.narrow aside>*:not(#detailsBar){display:none}main.narrow #detailsBar{text-align:center;margin:0}#toggleDetails svg{transition:transform .15s;transform:rotate(90deg)}main.narrow #toggleDetails svg{transform:rotate(-90deg)}";
+style.textContent+="#scale{position:fixed;inset:0;z-index:10;display:flex;align-items:flex-start;justify-content:center;padding:36px 20px;overflow:auto;background:rgba(9,14,24,.74)}#scale[hidden]{display:none}#scaleCard{position:relative;width:min(760px,100%);padding:26px 30px 24px;border:1px solid #52637d;border-radius:12px;background:#16233a}#scaleClose{position:absolute;top:13px;right:13px;width:32px;height:32px;padding:0;font-size:17px;line-height:1}#gauge{position:relative;height:8px;margin:18px 0 6px;border-radius:999px;background:#202f45}#gaugeMark{position:absolute;top:-4px;width:4px;height:16px;border-radius:2px;background:currentColor}.rung{display:grid;grid-template-columns:130px 1fr auto;gap:14px;align-items:baseline;padding:9px 10px;border-radius:8px}.rung.current{background:#1d2e47;outline:1px solid var(--color)}.rung b{color:var(--color)}.rung small{color:#b5c2d6;line-height:1.4}.rung .measured{text-align:right}.move{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:baseline;padding:11px 10px;border-top:1px solid #344156}.move strong{display:block}.move small,.move div small{color:#b5c2d6}.gain{color:#83e0b7;font-size:17px;font-weight:700;text-align:right}#scaleCard h2{font-size:12px;margin:22px 0 8px;color:#b5c2d6;text-transform:uppercase;letter-spacing:.05em}";
+style.textContent+="#pastaBadge{display:inline-block;margin-right:12px;padding:2px 10px;border:1px solid;border-radius:999px;font:inherit;font-weight:600;background:none;cursor:pointer}#architecture{margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid #344156}.pasta{display:flex;align-items:center;gap:14px}.pastaScore{min-width:58px;padding:7px 0;border:2px solid;border-radius:10px;text-align:center;font-size:25px;font-weight:700;line-height:1.1;background:none}button.pastaScore{cursor:pointer}.pasta strong{display:block;font-size:17px}.pasta small{color:#b5c2d6}#architecture h2{font-size:12px;margin:17px 0 6px;color:#b5c2d6;text-transform:uppercase;letter-spacing:.05em}#architecture ul{margin:0;padding-left:18px}#architecture li{margin:5px 0;line-height:1.45}#architecture li b{color:#f5b454}#architecture>small{display:block;margin-top:14px;line-height:1.45}";
 style.textContent+="header{position:relative}#toggleControls{position:absolute;top:14px;right:24px}#toggleControls svg{transition:transform .15s}header.collapsed{padding:8px 24px}header.collapsed h1{display:none}header.collapsed #controls{display:none}header.collapsed #status{padding-right:44px}header.collapsed #toggleControls{top:5px}header.collapsed #toggleControls svg{transform:rotate(180deg)}";
 document.head.append(style);
 for (const d of domains) {const o=document.createElement('option');o.value=d;o.textContent=d;$('domain').append(o);}
@@ -25,19 +27,69 @@ function describeCytoLayout(){$('cytoLayout').title=layoutHelp.get($('cytoLayout
 const percent=value=>Math.round(value*100)+'%';
 $('status').replaceChildren();
 if(D.metrics&&D.metrics.graded){
-    const badge=text('span',`${D.metrics.shape.emoji} ${D.metrics.score} · ${D.metrics.shape.name}`,$('status'));
+    const badge=text('button',`${D.metrics.shape.emoji} ${D.metrics.score} · ${D.metrics.shape.name}`,$('status'));
     badge.id='pastaBadge';badge.style.color=D.metrics.shape.color;badge.style.borderColor=D.metrics.shape.color;
-    badge.title=D.metrics.shape.summary;
+    badge.title='Open the pasta scale: every shape, the rule behind it and what your graph measures against it.';
+    badge.onclick=()=>toggleScale(true);
 }
 text('span',`${D.nodes.length} projects · ${D.edges.length} references · ${D.cycles.length} project cycle group(s)`,$('status'));
 $('warnings').textContent = D.unresolved.length ? `${D.unresolved.length} unresolved project references (missing files or unevaluated expressions).` : 'All project references were resolved.';
+// The scale is the answer to "what are the other levels": every rung, the rule
+// behind it, and what this graph measures against that rule. The moves below it
+// are priced by replaying the score, so none of the figures is an estimate.
+function scalePanel(){
+    const m=D.metrics,box=$('scaleCard');if(!m)return;
+    box.replaceChildren();
+    const close=text('button','×',box);close.id='scaleClose';
+    close.title='Close';close.setAttribute('aria-label','Close the pasta scale');
+    close.onclick=()=>toggleScale(false);
+    const head=text('div','',box);head.className='pasta';
+    const score=text('div',m.graded?String(m.score):'—',head);
+    score.className='pastaScore';score.style.borderColor=m.shape.color;score.style.color=m.shape.color;
+    const title=text('div','',head);
+    text('strong',`${m.shape.emoji} ${m.shape.name}`,title).style.color=m.shape.color;
+    text('small',m.shape.summary,title);
+    if(m.graded){
+        const gauge=text('div','',box);gauge.id='gauge';
+        const mark=text('div','',gauge);mark.id='gaugeMark';
+        mark.style.left=`calc(${Math.max(0,Math.min(100,m.score))}% - 2px)`;mark.style.color=m.shape.color;
+        text('small','0 means everything reaches everything. 100 means no cycle, no redundant reference, and a change that stays where you put it.',box);
+    }
+    text('h2','Where you sit on the scale',box);
+    for(const rung of m.scale){
+        const row=text('div','',box);row.className='rung'+(rung.current?' current':'');
+        row.style.setProperty('--color',rung.color);
+        text('b',`${rung.emoji} ${rung.name}`,row);
+        text('small',rung.rule,row);
+        text('small',rung.measured,row).className='measured';
+    }
+    text('small','The first rule that matches wins, so a cycle always outranks anything else the same graph would satisfy.',box);
+    if(m.moves.length){
+        text('h2','What the next move is worth',box);
+        for(const move of m.moves){
+            const row=text('div','',box);row.className='move';
+            const left=text('div','',row);text('strong',move.label,left);text('small',move.detail,left);
+            const right=text('div','',row);
+            text('div',`+${move.gain}`,right).className='gain';
+            text('small',`${move.emoji} ${move.shape} · ${move.score}`,right);
+        }
+        text('small','Each figure is the score recomputed on the graph the change would leave behind, not a projection.',box);
+    }
+}
+function toggleScale(open){
+    const panel=$('scale');if(!panel)return;
+    if(open)scalePanel();
+    panel.hidden=!open;
+    if(open)$('scaleClose').focus();else $('pastaBadge')?.focus();
+}
 function architecture(){
     const m=D.metrics,box=$('architecture');if(!box||!m)return;
     box.replaceChildren();
     const head=text('div','',box);head.className='pasta';
-    const score=text('div',m.graded?String(m.score):'—',head);
+    const score=text('button',m.graded?String(m.score):'—',head);
     score.className='pastaScore';score.style.borderColor=m.shape.color;score.style.color=m.shape.color;
-    score.title='0 to 100. Cycles weigh most, then how far a change travels, then references that duplicate an existing path.';
+    score.title='Open the pasta scale. The score runs from 0 to 100: cycles weigh most, then how far a change travels, then references that duplicate an existing path.';
+    score.onclick=()=>toggleScale(true);
     const title=text('div','',head);
     text('strong',`${m.shape.emoji} ${m.shape.name}`,title).style.color=m.shape.color;
     text('small','Pasta index',title);
@@ -213,6 +265,17 @@ function setControlsCollapsed(collapsed){
     resizeCytoscape();
 }
 $('toggleControls').onclick=()=>setControlsCollapsed(!document.querySelector('header').classList.contains('collapsed'));
+function setDetailsCollapsed(collapsed){
+    document.querySelector('main').classList.toggle('narrow',collapsed);
+    const label=collapsed?'Show the details panel':'Hide the details panel';
+    $('toggleDetails').setAttribute('aria-expanded',String(!collapsed));
+    $('toggleDetails').title=label;$('toggleDetails').setAttribute('aria-label',label);
+    resizeCytoscape();
+}
+$('toggleDetails').onclick=()=>setDetailsCollapsed(!document.querySelector('main').classList.contains('narrow'));
+document.body.insertAdjacentHTML('beforeend','<div id="scale" hidden><div id="scaleCard" role="dialog" aria-modal="true" aria-label="Pasta index scale"></div></div>');
+$('scale').onclick=event=>{if(event.target===$('scale'))toggleScale(false);};
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('scale').hidden)toggleScale(false);});
 $('fit').onclick=fit;$('plus').onclick=()=>{scale=Math.min(3,scale+0.15);zoom();};$('minus').onclick=()=>{scale=Math.max(0.15,scale-0.15);zoom();};
 $('export').onclick=()=>{if(!$('graph'))return;const blob=new Blob([serializeGraph()],{type:'image/svg+xml'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='dotnet-dependencies.svg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
 function applyGraphPan(){const svg=$('graph');if(svg)svg.style.transform=`translate(${graphPan.x}px, ${graphPan.y}px)`;}
