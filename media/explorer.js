@@ -11,18 +11,53 @@ document.querySelector('header').innerHTML = `<h1>.NET Dependency Explorer</h1><
 <nav id="cytoOptions"><label title="How the canvas arranges projects. Each layout answers a different question.">Cytoscape layout <select id="cytoLayout"></select></label><button id="cytoRelayout" title="Compute the layout again from scratch. Force-directed produces a different arrangement each time.">Re-run layout</button><button id="cytoFit" title="Zoom and centre so every visible project fits the viewport.">Fit</button><output id="cytoZoom" aria-live="polite">100%</output><button id="cytoFocus" title="Open the selected project in the three-column focus view.">Open focus view</button><button id="cytoPng" title="Save the whole graph as a PNG image, not only the visible part.">Export PNG</button></nav>
 </div>`;
 $('canvas').innerHTML = '<div id="count" aria-live="polite"></div><div id="content"></div>';
-document.querySelector('aside').innerHTML = `<h2 id="detailTitle">Most referenced projects</h2><div id="details"></div><details><summary>How to read this view</summary><p>A → B means A references B. Blue: a dependency of the selected project. Green: a project that uses it. Red: an edge in a project cycle. Dashed orange: a redundant reference because another path exists in the filtered view. It is still a real project reference.</p><p>Labels show complete project names unless you configure label prefixes. Hover a card or open its details for the full name.</p><p>Domains are inferred from project names. Reciprocal domain relationships do not prove that individual projects form a cycle.</p><p>Declared ProjectReference items across the open workspace. MSBuild conditions and imported files are not evaluated. NuGet, classes, namespaces and network calls are outside this analysis.</p><div id="warnings"></div></details>`;
+document.querySelector('aside').innerHTML = `<section id="architecture"></section><h2 id="detailTitle">Most referenced projects</h2><div id="details"></div><details><summary>How to read this view</summary><p>A → B means A references B. Blue: a dependency of the selected project. Green: a project that uses it. Red: an edge in a project cycle. Dashed orange: a redundant reference because another path exists in the filtered view. It is still a real project reference.</p><p>Labels show complete project names unless you configure label prefixes. Hover a card or open its details for the full name.</p><p>Domains are inferred from project names. Reciprocal domain relationships do not prove that individual projects form a cycle.</p><p>Declared ProjectReference items across the open workspace. MSBuild conditions and imported files are not evaluated. NuGet, classes, namespaces and network calls are outside this analysis.</p><div id="warnings"></div></details>`;
 const style = document.createElement('style');
 style.textContent = `.icon-button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:7px;flex-shrink:0}.icon-button svg{pointer-events:none}#canvas:has(#graph){cursor:grab}#canvas.panning,#canvas.panning *{cursor:grabbing!important;user-select:none!important}#graph{touch-action:none;transform-origin:0 0}body{height:100vh;display:flex;flex-direction:column}header{padding:18px 24px}main{flex:1;height:auto;min-height:0}#canvas{padding:18px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}.card{text-align:left;padding:20px;min-height:130px;border-top:4px solid var(--color)}.card strong{display:block;font-size:18px;margin-bottom:12px}.card span{display:block;color:#b5c2d6;margin-top:8px}#detailTitle{overflow-wrap:anywhere}#count{padding-bottom:14px;color:#b5c2d6}table{border-collapse:collapse;font-size:12px}th,td{padding:8px;border:1px solid #344156;text-align:center}th{background:#202f45}th:first-child{text-align:left;position:sticky;left:0;min-width:230px}td button{padding:5px;min-width:30px;background:transparent;border:0}details{margin-top:24px}summary{cursor:pointer}button:hover{border-color:#83e0b7}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #83e0b7}@media(max-width:900px){main{grid-template-columns:minmax(0,1fr) 250px}}`;
 style.textContent+="#canvas:has(#graph){display:flex;flex-direction:column;overflow:hidden;cursor:auto}#content:has(#graph){display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}#content:has(#graph)>p,#content:has(#graph)>button{flex-shrink:0}#graphViewport{position:relative;isolation:isolate;contain:paint;overflow:auto;flex:1;min-height:100px;border:1px solid #344156;border-radius:8px;cursor:grab;background:#101827}#graphViewport #graph{position:relative}#edgeInfo{position:static!important;z-index:auto!important} ";
+style.textContent+="#pastaBadge{display:inline-block;margin-right:12px;padding:2px 10px;border:1px solid;border-radius:999px;font-weight:600}#architecture{margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid #344156}.pasta{display:flex;align-items:center;gap:14px}.pastaScore{min-width:58px;padding:7px 0;border:2px solid;border-radius:10px;text-align:center;font-size:25px;font-weight:700;line-height:1.1}.pasta strong{display:block;font-size:17px}.pasta small{color:#b5c2d6}#architecture h2{font-size:12px;margin:17px 0 6px;color:#b5c2d6;text-transform:uppercase;letter-spacing:.05em}#architecture ul{margin:0;padding-left:18px}#architecture li{margin:5px 0;line-height:1.45}#architecture li b{color:#f5b454}#architecture>small{display:block;margin-top:14px;line-height:1.45}";
 style.textContent+="header{position:relative}#toggleControls{position:absolute;top:14px;right:24px}#toggleControls svg{transition:transform .15s}header.collapsed{padding:8px 24px}header.collapsed h1{display:none}header.collapsed #controls{display:none}header.collapsed #status{padding-right:44px}header.collapsed #toggleControls{top:5px}header.collapsed #toggleControls svg{transform:rotate(180deg)}";
 document.head.append(style);
 for (const d of domains) {const o=document.createElement('option');o.value=d;o.textContent=d;$('domain').append(o);}
 for (const [value,name,help] of cytoscapeLayouts) {const o=document.createElement('option');o.value=value;o.textContent=name;o.title=help;$('cytoLayout').append(o);}
 const layoutHelp=new Map(cytoscapeLayouts.map(([value,,help])=>[value,help]));
 function describeCytoLayout(){$('cytoLayout').title=layoutHelp.get($('cytoLayout').value)||'';}
-$('status').textContent = `${D.nodes.length} projects · ${D.edges.length} references · ${D.cycles.length} project cycle group(s)`;
+const percent=value=>Math.round(value*100)+'%';
+$('status').replaceChildren();
+if(D.metrics&&D.metrics.graded){
+    const badge=text('span',`${D.metrics.shape.emoji} ${D.metrics.score} · ${D.metrics.shape.name}`,$('status'));
+    badge.id='pastaBadge';badge.style.color=D.metrics.shape.color;badge.style.borderColor=D.metrics.shape.color;
+    badge.title=D.metrics.shape.summary;
+}
+text('span',`${D.nodes.length} projects · ${D.edges.length} references · ${D.cycles.length} project cycle group(s)`,$('status'));
 $('warnings').textContent = D.unresolved.length ? `${D.unresolved.length} unresolved project references (missing files or unevaluated expressions).` : 'All project references were resolved.';
+function architecture(){
+    const m=D.metrics,box=$('architecture');if(!box||!m)return;
+    box.replaceChildren();
+    const head=text('div','',box);head.className='pasta';
+    const score=text('div',m.graded?String(m.score):'—',head);
+    score.className='pastaScore';score.style.borderColor=m.shape.color;score.style.color=m.shape.color;
+    score.title='0 to 100. Cycles weigh most, then how far a change travels, then references that duplicate an existing path.';
+    const title=text('div','',head);
+    text('strong',`${m.shape.emoji} ${m.shape.name}`,title).style.color=m.shape.color;
+    text('small','Pasta index',title);
+    text('p',m.shape.summary,box);
+    if(m.drivers.length){
+        text('h2','What costs you points',box);
+        const list=text('ul','',box);
+        for(const driver of m.drivers){const item=text('li',driver.label,list);text('b',` −${Math.round(driver.cost)}`,item);}
+    }else if(m.graded)text('p','Nothing measurable is holding the score down.',box);
+    text('h2','Next step',box);text('p',m.shape.advice,box);
+    if(m.graded){
+        text('h2','Shape',box);
+        const facts=text('ul','',box);
+        text('li',`Propagation cost ${percent(m.propagationCost)}: the share of the solution an average change can reach.`,facts);
+        text('li',`${m.depth} dependency layer${m.depth>1?'s':''} deep.`,facts);
+        if(m.modular)text('li',`Modularity ${m.modularity.toFixed(2)} against the declared domains: above 0.30 the domains are structural, at or below 0 the references ignore them.`,facts);
+        if(m.hub)text('li',`Most referenced: ${m.hub}, used by ${percent(m.hubShare)} of the others.`,facts);
+    }
+    text('small',`Graded on ${m.projects} production project${m.projects>1?'s':''} across the whole workspace: test projects and the filters above are excluded. Project references only, so coupling through dependency injection, reflection or a shared database stays invisible.`,box);
+}
 function text(tag,value,parent){const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;}
 function svgEl(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e;}
 function label(n){const prefix=(D.labelPrefixes||[]).find(p=>n.name.startsWith(p));return prefix?n.name.slice(prefix.length):n.name;}
@@ -206,4 +241,5 @@ function finishPan(event){
 for(const type of ['pointerup','pointercancel','lostpointercapture'])panCanvas.addEventListener(type,finishPan);
 panCanvas.addEventListener('click',event=>{if(suppressPanClick){event.preventDefault();event.stopImmediatePropagation();}},true);
 panCanvas.addEventListener('auxclick',event=>{if(event.button===1&&$('graph')?.contains(event.target))event.preventDefault();});
+architecture();
 render();

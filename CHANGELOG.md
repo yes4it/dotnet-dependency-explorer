@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Add the **pasta index**: a 0-100 coupling score and a shape, shown in the header and explained in the side panel.
+- Grade the workspace on four measures computed from the reference graph: propagation cost, cycle mass, redundant references and modularity against the declared domains.
+- Name the shape the graph actually has — spaghetti, fusilli, gnocchi, ravioli, penne, lasagne or macaroni — with the next step it calls for.
+- Exclude test projects from the grade, so a test suite cannot move the score.
+
 ## 0.2.0
 
 - Add a **Cytoscape graph** view: the same filtered graph rendered on canvas, with levels, force-directed, breadth-first, concentric, circle and grid layouts.
