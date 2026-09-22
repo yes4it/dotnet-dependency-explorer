@@ -53,10 +53,16 @@ function priceMoves(data:{nodes:ProjectNode[];edges:Edge[]},base:Architecture,gr
   const moves:Move[]=[];
   const inCycle=data.edges.filter(e=>index.has(e.source)&&index.has(e.target)&&
     group[index.get(e.source)!]===group[index.get(e.target)!]&&cyclic[group[index.get(e.source)!]]);
-  for(const edge of inCycle.slice(0,candidateLimit))
-    moves.push(move(`Invert ${name.get(edge.source)} → ${name.get(edge.target)}`,
+  const bestPerCycle=new Map<number,Move>();
+  for(const edge of inCycle.slice(0,candidateLimit)){
+    const candidate=move(`Invert ${name.get(edge.source)} → ${name.get(edge.target)}`,
       'One reference, through an interface both sides already reach.',
-      data.edges.filter(e=>e!==edge)));
+      data.edges.filter(e=>e!==edge));
+    const cycle=group[index.get(edge.source)!];
+    const best=bestPerCycle.get(cycle);
+    if(!best||candidate.gain>best.gain)bestPerCycle.set(cycle,candidate);
+  }
+  moves.push(...bestPerCycle.values());
   const arcs=feedbackArcs(data,group,cyclic,index);
   if(arcs.length>1)moves.push(move('Break every cycle',
     `${arcs.length} references to invert, across ${base.cycleGroups} group(s).`,

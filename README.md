@@ -51,6 +51,8 @@ Three properties cost points, because fixing any of them is unambiguously an imp
 
 Depth, modularity and the most-referenced project describe the shape without costing points, because none of them is a defect on its own.
 
+![The pasta scale: every shape, its rule, and what the graph measures against it](https://raw.githubusercontent.com/yes4it/dotnet-dependency-explorer/main/assets/pasta-scale.png)
+
 **Click the index**, in the header or in the side panel, to open the scale. It lists every shape with the rule behind it and what your graph measures against that rule, so you can see why you landed where you did and what separates you from the next rung. Below it, the moves that would change the grade are priced by recomputing the index on the graph the change would leave behind: breaking a given cycle, inverting every cycle at once, or dropping the redundant references. The figures are results, not projections. Solutions above 400 projects skip the pricing.
 
 | Shape | What it means |
@@ -68,6 +70,8 @@ The index measures coupling **between assemblies**. Two projects with no referen
 ## Cytoscape graph
 
 Choose **Cytoscape graph** in the View menu. Domain, search, tests, cycles, direction, depth and **Hide redundant links** apply exactly as in the project graph; only the renderer changes.
+
+![Cytoscape canvas view with a cycle in red and redundant references dashed in orange](https://raw.githubusercontent.com/yes4it/dotnet-dependency-explorer/main/assets/cytoscape-graph.png)
 
 - Pick a layout: *Levels* follows dependency order, *Force-directed* spreads projects apart, *Breadth-first* starts from the selected project, *Concentric* puts the most referenced projects in the middle, *Circle* and *Grid* are fixed arrangements. Each entry in the menu carries a tooltip describing what it shows, as do the buttons next to it.
 - Drag to pan, scroll to zoom, drag a project to move it. The **- / +** buttons zoom around the middle of the viewport, **Fit** reframes the graph and **Re-run layout** recomputes it.

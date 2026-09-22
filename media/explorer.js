@@ -17,7 +17,7 @@ style.textContent = `.icon-button{display:inline-flex;align-items:center;justify
 style.textContent+="#canvas:has(#graph){display:flex;flex-direction:column;overflow:hidden;cursor:auto}#content:has(#graph){display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}#content:has(#graph)>p,#content:has(#graph)>button{flex-shrink:0}#graphViewport{position:relative;isolation:isolate;contain:paint;overflow:auto;flex:1;min-height:100px;border:1px solid #344156;border-radius:8px;cursor:grab;background:#101827}#graphViewport #graph{position:relative}#edgeInfo{position:static!important;z-index:auto!important} ";
 style.textContent+="#detailsBar{text-align:right;margin-bottom:4px}main.narrow{grid-template-columns:minmax(0,1fr) 44px}main.narrow aside{padding:12px 5px}main.narrow aside>*:not(#detailsBar){display:none}main.narrow #detailsBar{text-align:center;margin:0}#toggleDetails svg{transition:transform .15s;transform:rotate(90deg)}main.narrow #toggleDetails svg{transform:rotate(-90deg)}";
 style.textContent+="#scale{position:fixed;inset:0;z-index:10;display:flex;align-items:flex-start;justify-content:center;padding:36px 20px;overflow:auto;background:rgba(9,14,24,.74)}#scale[hidden]{display:none}#scaleCard{position:relative;width:min(760px,100%);padding:26px 30px 24px;border:1px solid #52637d;border-radius:12px;background:#16233a}#scaleClose{position:absolute;top:13px;right:13px;width:32px;height:32px;padding:0;font-size:17px;line-height:1}#gauge{position:relative;height:8px;margin:18px 0 6px;border-radius:999px;background:#202f45}#gaugeMark{position:absolute;top:-4px;width:4px;height:16px;border-radius:2px;background:currentColor}.rung{display:grid;grid-template-columns:130px 1fr auto;gap:14px;align-items:baseline;padding:9px 10px;border-radius:8px}.rung.current{background:#1d2e47;outline:1px solid var(--color)}.rung b{color:var(--color)}.rung small{color:#b5c2d6;line-height:1.4}.rung .measured{text-align:right}.move{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:baseline;padding:11px 10px;border-top:1px solid #344156}.move strong{display:block}.move small,.move div small{color:#b5c2d6}.gain{color:#83e0b7;font-size:17px;font-weight:700;text-align:right}#scaleCard h2{font-size:12px;margin:22px 0 8px;color:#b5c2d6;text-transform:uppercase;letter-spacing:.05em}";
-style.textContent+="#pastaBadge{display:inline-block;margin-right:12px;padding:2px 10px;border:1px solid;border-radius:999px;font:inherit;font-weight:600;background:none;cursor:pointer}#architecture{margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid #344156}.pasta{display:flex;align-items:center;gap:14px}.pastaScore{min-width:58px;padding:7px 0;border:2px solid;border-radius:10px;text-align:center;font-size:25px;font-weight:700;line-height:1.1;background:none}button.pastaScore{cursor:pointer}.pasta strong{display:block;font-size:17px}.pasta small{color:#b5c2d6}#architecture h2{font-size:12px;margin:17px 0 6px;color:#b5c2d6;text-transform:uppercase;letter-spacing:.05em}#architecture ul{margin:0;padding-left:18px}#architecture li{margin:5px 0;line-height:1.45}#architecture li b{color:#f5b454}#architecture>small{display:block;margin-top:14px;line-height:1.45}";
+style.textContent+="#pastaBadge{display:inline-block;margin-right:12px;padding:2px 10px;border:1px solid;border-radius:999px;font:inherit;font-weight:600;background:none;cursor:pointer}#architecture{margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid #344156}.pasta{display:flex;align-items:center;gap:14px}.pastaScore{flex:none;width:auto;min-width:58px;padding:7px 12px;border:2px solid;border-radius:10px;text-align:center;font-size:25px;font-weight:700;line-height:1.1;background:none}button.pastaScore{cursor:pointer}.pasta div{min-width:0}#whyGrade{margin:12px 0 0}#whyGrade summary{color:#b5c2d6;font-size:13px}.pasta strong{display:block;font-size:17px}.pasta small{color:#b5c2d6}#architecture h2{font-size:12px;margin:17px 0 6px;color:#b5c2d6;text-transform:uppercase;letter-spacing:.05em}#architecture ul{margin:0;padding-left:18px}#architecture li{margin:5px 0;line-height:1.45}#architecture li b{color:#f5b454}#architecture>small{display:block;margin-top:14px;line-height:1.45}";
 style.textContent+="header{position:relative}#toggleControls{position:absolute;top:14px;right:24px}#toggleControls svg{transition:transform .15s}header.collapsed{padding:8px 24px}header.collapsed h1{display:none}header.collapsed #controls{display:none}header.collapsed #status{padding-right:44px}header.collapsed #toggleControls{top:5px}header.collapsed #toggleControls svg{transform:rotate(180deg)}";
 document.head.append(style);
 for (const d of domains) {const o=document.createElement('option');o.value=d;o.textContent=d;$('domain').append(o);}
@@ -94,21 +94,23 @@ function architecture(){
     text('strong',`${m.shape.emoji} ${m.shape.name}`,title).style.color=m.shape.color;
     text('small','Pasta index',title);
     text('p',m.shape.summary,box);
+    const why=text('details','',box);why.id='whyGrade';
+    text('summary','Why this grade',why);
     if(m.drivers.length){
-        text('h2','What costs you points',box);
-        const list=text('ul','',box);
+        text('h2','What costs you points',why);
+        const list=text('ul','',why);
         for(const driver of m.drivers){const item=text('li',driver.label,list);text('b',` −${Math.round(driver.cost)}`,item);}
-    }else if(m.graded)text('p','Nothing measurable is holding the score down.',box);
-    text('h2','Next step',box);text('p',m.shape.advice,box);
+    }else if(m.graded)text('p','Nothing measurable is holding the score down.',why);
+    text('h2','Next step',why);text('p',m.shape.advice,why);
     if(m.graded){
-        text('h2','Shape',box);
-        const facts=text('ul','',box);
+        text('h2','Shape',why);
+        const facts=text('ul','',why);
         text('li',`Propagation cost ${percent(m.propagationCost)}: the share of the solution an average change can reach.`,facts);
         text('li',`${m.depth} dependency layer${m.depth>1?'s':''} deep.`,facts);
         if(m.modular)text('li',`Modularity ${m.modularity.toFixed(2)} against the declared domains: above 0.30 the domains are structural, at or below 0 the references ignore them.`,facts);
         if(m.hub)text('li',`Most referenced: ${m.hub}, used by ${percent(m.hubShare)} of the others.`,facts);
     }
-    text('small',`Graded on ${m.projects} production project${m.projects>1?'s':''} across the whole workspace: test projects and the filters above are excluded. Project references only, so coupling through dependency injection, reflection or a shared database stays invisible.`,box);
+    text('small',`Graded on ${m.projects} production project${m.projects>1?'s':''} across the whole workspace: test projects and the filters above are excluded. Project references only, so coupling through dependency injection, reflection or a shared database stays invisible.`,why);
 }
 function text(tag,value,parent){const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;}
 function svgEl(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e;}
