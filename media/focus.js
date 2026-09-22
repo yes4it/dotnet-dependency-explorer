@@ -10,7 +10,7 @@ function focusGraph(nodes,edges){
     const left=nodes.filter(n=>incoming.has(n.id)&&!outgoing.has(n.id)).sort(sort);
     const right=nodes.filter(n=>outgoing.has(n.id)).sort(sort);
     const positions=new Map(),width=270,pitch=112;
-    function wrap(value){const words=value.replace(/([a-z])([A-Z])/g,'$1 $2').split(/(?<=\.)|\s+/);const lines=[];let line='';for(let word of words){while(word.length>31){if(line){lines.push(line);line='';}lines.push(word.slice(0,31));word=word.slice(31);}if((line+word).length>31){lines.push(line);line='';}line+=(line?' ':'')+word;}if(line)lines.push(line);return lines;}
+    const wrap=value=>wrapLabel(value,31);
     const heights=new Map(nodes.map(n=>[n.id,Math.max(88,wrap(label(n)).length*18+44)]));
     function place(list,x){let y=100;for(const n of list){positions.set(n.id,{x,y,w:width,h:heights.get(n.id)});y+=Math.max(pitch,heights.get(n.id)+24);}return y;}
     const bottom=Math.max(place(left,24),place(right,884),360);

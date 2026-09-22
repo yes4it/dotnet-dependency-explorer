@@ -6,6 +6,9 @@
 - Highlight a project's neighbourhood on hover and show its full name, domain, level, path and reference counts.
 - Select a project inside the view to filter around it without leaving it; **Open focus view** switches to the three-column layout.
 - Export the current graph as PNG through the VS Code save dialog.
+- Collapse the three toolbars with the chevron in the header, giving their height back to the graph. The choice is kept with the rest of the view.
+- Explain every Cytoscape layout and canvas button through tooltips.
+- Wrap long project names over several lines at dots and camel-case boundaries instead of cutting them.
 - Bundle Cytoscape 3.34.3 (MIT) in `media/vendor`; the extension still runs fully offline.
 
 ## 0.1.4

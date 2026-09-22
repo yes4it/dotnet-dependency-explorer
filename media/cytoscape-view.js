@@ -1,13 +1,20 @@
 // Cytoscape view. The SVG views own routing and print-quality export; this one
 // renders to canvas so large filtered graphs stay responsive, and it offers
 // force-directed and tree layouts the hand-written geometry cannot produce.
+// Third entry is the tooltip, shown on the option and on the closed select.
 const cytoscapeLayouts = [
-    ['levels', 'Levels (dependency order)'],
-    ['cose', 'Force-directed'],
-    ['breadthfirst', 'Breadth-first'],
-    ['concentric', 'Concentric (most used at centre)'],
-    ['circle', 'Circle'],
-    ['grid', 'Grid'],
+    ['levels', 'Levels (dependency order)',
+        'Fixed columns by dependency level: applications on the left, foundation projects on the right. Same order as the level view, so both agree.'],
+    ['cose', 'Force-directed',
+        'Physics simulation: referenced projects attract, unrelated ones repel. Reveals clusters and loosely coupled groups. Slower on large graphs, and arranges differently on each run.'],
+    ['breadthfirst', 'Breadth-first',
+        'Hierarchical tree following the reference direction, one row per hop. Starts from the selected project when there is one.'],
+    ['concentric', 'Concentric (most used at centre)',
+        'Rings by number of users: the most referenced projects sit at the centre, the least used on the outer rings.'],
+    ['circle', 'Circle',
+        'Every project on a single circle. Shows all references at once on small graphs, but says nothing about structure.'],
+    ['grid', 'Grid',
+        'Even rows and columns, unrelated to the dependency structure. Predictable positions for reading long project names.'],
 ];
 let cytoscapeInstance = null, cytoscapeSignature = '', cytoscapeMemo = null;
 (function cytoscapeStyles(){
@@ -33,6 +40,8 @@ function destroyCytoscape(){
     }
     if($('cytoZoom'))$('cytoZoom').textContent='—';
 }
+// Collapsing the header resizes the viewport without a window resize event.
+function resizeCytoscape(){if(cytoscapeInstance)cytoscapeInstance.resize();}
 // Same barycentric sweeps as the SVG level view, so both agree on column order.
 function cytoscapeLevelPositions(nodes,edges){
     const levels=[...new Set(nodes.map(n=>n.level))].sort((a,b)=>b-a);
@@ -68,8 +77,9 @@ function cytoscapeGraph(nodes,edges){
     const colors={normal:'#7186a6',out:'#78b6ff',in:'#79dac2',cycle:'#ff667a',redundant:'#f5b454'};
     const key=id=>`n${id}`, idOf=node=>Number(node.id().slice(1));
     const elements=[
-        ...nodes.map(n=>({data:{id:key(n.id),label:label(n),border:n.cycle?'#ff667a':color(n.domain)},
-            classes:n.id===selected?'chosen':''})),
+        ...nodes.map(n=>{const lines=wrapLabel(label(n),22);
+            return {data:{id:key(n.id),label:lines.join('\n'),height:Math.max(46,lines.length*15+18),
+                border:n.cycle?'#ff667a':color(n.domain)},classes:n.id===selected?'chosen':''};}),
         ...edges.map(e=>({data:{id:`e${e.source}_${e.target}`,source:key(e.source),target:key(e.target),
             color:colors[e.cycle?'cycle':e.redundant?'redundant':e.source===selected?'out':e.target===selected?'in':'normal'],
             redundant:e.redundant?1:0},
@@ -78,7 +88,7 @@ function cytoscapeGraph(nodes,edges){
     const style=[
         {selector:'node',style:{shape:'round-rectangle','background-color':'#202f45','border-color':'data(border)','border-width':1.4,
             label:'data(label)',color:'#eef4ff','font-family':'system-ui','font-size':11,'text-valign':'center','text-halign':'center',
-            'text-wrap':'wrap','text-max-width':136,width:162,height:46}},
+            'text-wrap':'wrap','text-max-width':140,width:162,height:'data(height)'}},
         {selector:'node.chosen',style:{'background-color':'#195475','border-color':'#83e0b7','border-width':3}},
         {selector:'edge',style:{width:1.3,'line-color':'data(color)','target-arrow-color':'data(color)','target-arrow-shape':'triangle',
             'arrow-scale':0.85,'curve-style':'bezier',opacity:0.45}},

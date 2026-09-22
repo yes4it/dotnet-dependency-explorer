@@ -33,6 +33,8 @@ For a locally downloaded VSIX, run **Extensions: Install from VSIX...** first.
 
 The circular-arrow **Refresh** button at the start of the toolbar rescans project references while preserving your current view.
 
+The chevron at the top right collapses the three toolbars into a single status line and gives their height back to the graph. The choice is kept with the rest of the view.
+
 Drag the graph background with the left mouse button to pan. The middle mouse button also works over cards. **Fit** resets the offset; refresh preserves it.
 
 The **- / +** controls zoom from 15% to 300%; **Fit** fits the graph width. Selecting a new project opens it at 100%. Use **Relations between neighbors** to show secondary links in project focus. Clicking a connection pins it; **Clear edge selection** or Escape clears it.
@@ -41,13 +43,13 @@ The **- / +** controls zoom from 15% to 300%; **Fit** fits the graph width. Sele
 
 Choose **Cytoscape graph** in the View menu. Domain, search, tests, cycles, direction, depth and **Hide redundant links** apply exactly as in the project graph; only the renderer changes.
 
-- Pick a layout: *Levels* follows dependency order, *Force-directed* spreads projects apart, *Breadth-first* starts from the selected project, *Concentric* puts the most referenced projects in the middle, *Circle* and *Grid* are fixed arrangements.
+- Pick a layout: *Levels* follows dependency order, *Force-directed* spreads projects apart, *Breadth-first* starts from the selected project, *Concentric* puts the most referenced projects in the middle, *Circle* and *Grid* are fixed arrangements. Each entry in the menu carries a tooltip describing what it shows, as do the buttons next to it.
 - Drag to pan, scroll to zoom, drag a project to move it. **Fit** reframes the graph and **Re-run layout** recomputes it.
 - Clicking a project filters around it without leaving the view; clicking the background clears the selection. **Open focus view** switches to the three-column layout.
 - Hovering a project or an arrow isolates its neighbourhood and shows the full name, domain, level, path and reference counts.
 - **Export PNG** saves the whole graph through the VS Code save dialog, capped at 4096 px per side.
 
-Labels are hard to read on a large graph fitted to the viewport. Filter or zoom in, and rely on hover for full names.
+Long project names wrap over several lines, breaking after a dot or before a capital so no word is cut. Labels are still hard to read on a large graph fitted to the viewport: filter or zoom in, and rely on hover for full names.
 
 ## Configuration
 

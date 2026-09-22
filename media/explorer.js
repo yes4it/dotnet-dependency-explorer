@@ -4,23 +4,42 @@ const palette = ['#78b6ff','#e8b87b','#b69aff','#79dac2','#f58ba8','#afca78','#9
 const color = d => palette[domains.indexOf(d) % palette.length];
 let selected = null, scale = 1, size = {width:1000,height:600};
 let graphPan={x:0,y:0};
-document.querySelector('header').innerHTML = `<h1>.NET Dependency Explorer</h1><div id="status"></div>
+document.querySelector('header').innerHTML = `<h1>.NET Dependency Explorer</h1><div id="status"></div><button id="toggleControls" class="icon-button" type="button" aria-expanded="true" aria-controls="controls" title="Hide filters and options" aria-label="Hide filters and options"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"/></svg></button>
+<div id="controls">
 <nav><button id="refresh" class="icon-button" title="Refresh project dependencies" aria-label="Refresh project dependencies"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M19 12a7 7 0 1 0-2 5"/></svg></button><label>View <select id="mode"><option value="domains">Domains</option><option value="graph">Project graph</option><option value="cytoscape">Cytoscape graph</option><option value="matrix">Project matrix</option></select></label><label>Domain <select id="domain"><option value="">All</option></select></label><input id="search" placeholder="Search projects…" aria-label="Search projects"><label><input id="tests" type="checkbox"> Tests</label><label><input id="cycles" type="checkbox"> Cycles only</label><button id="reset">Reset</button></nav>
 <nav id="graphOptions"><label>Layout <select id="layout"><option value="focus">Project focus</option><option value="levels">By level</option></select></label><label id="neighborsOption"><input id="neighbors" type="checkbox"> Relations between neighbors</label><label>Explore <select id="direction"><option value="both">Both directions</option><option value="out">Dependencies</option><option value="in">Used by</option></select></label><label>Depth <select id="depth"><option value="1">1 hop</option><option value="2">2 hops</option><option value="99">Transitive</option></select></label><label title="Hide A → C when another visible path connects A to C."><input id="reduce" type="checkbox"> Hide redundant links</label><button id="fit">Fit</button><button id="minus" aria-label="Zoom out">−</button><output id="zoomLevel" aria-live="polite">100%</output><button id="plus" aria-label="Zoom in">+</button><button id="export">Export SVG</button></nav>
-<nav id="cytoOptions"><label>Cytoscape layout <select id="cytoLayout"></select></label><button id="cytoRelayout">Re-run layout</button><button id="cytoFit">Fit</button><output id="cytoZoom" aria-live="polite">100%</output><button id="cytoFocus">Open focus view</button><button id="cytoPng">Export PNG</button></nav>`;
+<nav id="cytoOptions"><label title="How the canvas arranges projects. Each layout answers a different question.">Cytoscape layout <select id="cytoLayout"></select></label><button id="cytoRelayout" title="Compute the layout again from scratch. Force-directed produces a different arrangement each time.">Re-run layout</button><button id="cytoFit" title="Zoom and centre so every visible project fits the viewport.">Fit</button><output id="cytoZoom" aria-live="polite">100%</output><button id="cytoFocus" title="Open the selected project in the three-column focus view.">Open focus view</button><button id="cytoPng" title="Save the whole graph as a PNG image, not only the visible part.">Export PNG</button></nav>
+</div>`;
 $('canvas').innerHTML = '<div id="count" aria-live="polite"></div><div id="content"></div>';
 document.querySelector('aside').innerHTML = `<h2 id="detailTitle">Most referenced projects</h2><div id="details"></div><details><summary>How to read this view</summary><p>A → B means A references B. Blue: a dependency of the selected project. Green: a project that uses it. Red: an edge in a project cycle. Dashed orange: a redundant reference because another path exists in the filtered view. It is still a real project reference.</p><p>Labels show complete project names unless you configure label prefixes. Hover a card or open its details for the full name.</p><p>Domains are inferred from project names. Reciprocal domain relationships do not prove that individual projects form a cycle.</p><p>Declared ProjectReference items across the open workspace. MSBuild conditions and imported files are not evaluated. NuGet, classes, namespaces and network calls are outside this analysis.</p><div id="warnings"></div></details>`;
 const style = document.createElement('style');
 style.textContent = `.icon-button{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:7px;flex-shrink:0}.icon-button svg{pointer-events:none}#canvas:has(#graph){cursor:grab}#canvas.panning,#canvas.panning *{cursor:grabbing!important;user-select:none!important}#graph{touch-action:none;transform-origin:0 0}body{height:100vh;display:flex;flex-direction:column}header{padding:18px 24px}main{flex:1;height:auto;min-height:0}#canvas{padding:18px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}.card{text-align:left;padding:20px;min-height:130px;border-top:4px solid var(--color)}.card strong{display:block;font-size:18px;margin-bottom:12px}.card span{display:block;color:#b5c2d6;margin-top:8px}#detailTitle{overflow-wrap:anywhere}#count{padding-bottom:14px;color:#b5c2d6}table{border-collapse:collapse;font-size:12px}th,td{padding:8px;border:1px solid #344156;text-align:center}th{background:#202f45}th:first-child{text-align:left;position:sticky;left:0;min-width:230px}td button{padding:5px;min-width:30px;background:transparent;border:0}details{margin-top:24px}summary{cursor:pointer}button:hover{border-color:#83e0b7}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #83e0b7}@media(max-width:900px){main{grid-template-columns:minmax(0,1fr) 250px}}`;
 style.textContent+="#canvas:has(#graph){display:flex;flex-direction:column;overflow:hidden;cursor:auto}#content:has(#graph){display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}#content:has(#graph)>p,#content:has(#graph)>button{flex-shrink:0}#graphViewport{position:relative;isolation:isolate;contain:paint;overflow:auto;flex:1;min-height:100px;border:1px solid #344156;border-radius:8px;cursor:grab;background:#101827}#graphViewport #graph{position:relative}#edgeInfo{position:static!important;z-index:auto!important} ";
+style.textContent+="header{position:relative}#toggleControls{position:absolute;top:14px;right:24px}#toggleControls svg{transition:transform .15s}header.collapsed{padding:8px 24px}header.collapsed h1{display:none}header.collapsed #controls{display:none}header.collapsed #status{padding-right:44px}header.collapsed #toggleControls{top:5px}header.collapsed #toggleControls svg{transform:rotate(180deg)}";
 document.head.append(style);
 for (const d of domains) {const o=document.createElement('option');o.value=d;o.textContent=d;$('domain').append(o);}
-for (const [value,name] of cytoscapeLayouts) {const o=document.createElement('option');o.value=value;o.textContent=name;$('cytoLayout').append(o);}
+for (const [value,name,help] of cytoscapeLayouts) {const o=document.createElement('option');o.value=value;o.textContent=name;o.title=help;$('cytoLayout').append(o);}
+const layoutHelp=new Map(cytoscapeLayouts.map(([value,,help])=>[value,help]));
+function describeCytoLayout(){$('cytoLayout').title=layoutHelp.get($('cytoLayout').value)||'';}
 $('status').textContent = `${D.nodes.length} projects · ${D.edges.length} references · ${D.cycles.length} project cycle group(s)`;
 $('warnings').textContent = D.unresolved.length ? `${D.unresolved.length} unresolved project references (missing files or unevaluated expressions).` : 'All project references were resolved.';
 function text(tag,value,parent){const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;}
 function svgEl(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);parent.append(e);return e;}
 function label(n){const prefix=(D.labelPrefixes||[]).find(p=>n.name.startsWith(p));return prefix?n.name.slice(prefix.length):n.name;}
+// Breaks after a dot or before a camel-case hump, so a long namespace runs onto
+// the next line instead of losing characters. Joining the lines restores the
+// exact name; a segment is only cut when it alone is wider than one line.
+function wrapLabel(value,max){
+    const parts=value.split(/(?<=\.)|(?<=[a-z0-9])(?=[A-Z])/).filter(Boolean);
+    const lines=[];let line='';
+    for(let part of parts){
+        while(part.length>max){if(line){lines.push(line);line='';}lines.push(part.slice(0,max));part=part.slice(max);}
+        if(line&&line.length+part.length>max){lines.push(line);line='';}
+        line+=part;
+    }
+    if(line)lines.push(line);
+    return lines.length?lines:[value];
+}
 function choose(id){graphPan={x:0,y:0};selected=id;scale=1;$('layout').value='focus';$('depth').value='1';$('mode').value='graph';$('domain').value='';$('search').value='';$('cycles').checked=false;if(D.nodes[id].test)$('tests').checked=true;render();$('canvas').scrollTo(0,0);}
 function baseNodes(){return D.nodes.filter(n=>($('tests').checked||!n.test)&&(!$('cycles').checked||n.cycle));}
 function view(){
@@ -110,7 +129,7 @@ function graph(nodes,edges){
     const pos=new Map();columns.forEach((col,c)=>col.forEach((n,r)=>pos.set(n.id,{x:25+c*400,y:60+r*76})));size={width:Math.max(600,columns.length*400+20),height:Math.max(300,Math.max(0,...columns.map(c=>c.length))*76+100)};svg.setAttribute('viewBox',`0 0 ${size.width} ${size.height}`);
     columns.forEach((col,c)=>svgEl('text',{x:25+c*400,y:28,fill:'#b5c2d6','font-family':'system-ui','font-size':13},svg).textContent=levels[c]===0?'Foundations':`Level ${levels[c]}`);
     const paths=[];for(const e of edges){const a=pos.get(e.source),b=pos.get(e.target);const kind=e.cycle?'cycle':e.redundant?'redundant':e.source===selected?'out':e.target===selected?'in':'normal';const d=routeEdge(a,b,e.source*31+e.target);const opacity=kind==='normal'?0.45:0.95;const path=svgEl('path',{d,fill:'none',stroke:colors[kind],'stroke-width':kind==='normal'?1.3:2,opacity,'marker-end':`url(#${kind})`,'stroke-linejoin':'round','stroke-linecap':'round','stroke-dasharray':e.redundant&&!e.cycle?'7 5':'none','data-redundant':Boolean(e.redundant)},svg);svgEl('title',{},path).textContent=`${D.nodes[e.source].name} → ${D.nodes[e.target].name}`;paths.push({path,e,opacity});}
-    for(const n of nodes){const p=pos.get(n.id),g=svgEl('g',{class:'node',tabindex:0,role:'button','aria-label':n.name},svg);g.onclick=()=>choose(n.id);g.onkeydown=e=>{if(e.key==='Enter')choose(n.id);};g.onmouseenter=()=>paths.forEach(({path,e})=>path.setAttribute('opacity',e.source===n.id||e.target===n.id?1:0.06));g.onmouseleave=()=>paths.forEach(({path,opacity})=>path.setAttribute('opacity',opacity));svgEl('title',{},g).textContent=n.name;svgEl('rect',{x:p.x,y:p.y,width:320,height:56,rx:8,fill:n.id===selected?'#195475':'#202f45',stroke:n.cycle?'#ff667a':color(n.domain),'stroke-width':n.id===selected?3:1.3},g);const t=svgEl('text',{x:p.x+12,y:p.y+23,fill:'#eef4ff','font-family':'system-ui','font-size':14},g);t.textContent=label(n).length>38?label(n).slice(0,35)+'...':label(n);svgEl('text',{x:p.x+12,y:p.y+43,fill:color(n.domain),'font-family':'system-ui','font-size':13},g).textContent=n.domain;}zoom();
+    for(const n of nodes){const p=pos.get(n.id),g=svgEl('g',{class:'node',tabindex:0,role:'button','aria-label':n.name},svg);g.onclick=()=>choose(n.id);g.onkeydown=e=>{if(e.key==='Enter')choose(n.id);};g.onmouseenter=()=>paths.forEach(({path,e})=>path.setAttribute('opacity',e.source===n.id||e.target===n.id?1:0.06));g.onmouseleave=()=>paths.forEach(({path,opacity})=>path.setAttribute('opacity',opacity));svgEl('title',{},g).textContent=n.name;svgEl('rect',{x:p.x,y:p.y,width:320,height:56,rx:8,fill:n.id===selected?'#195475':'#202f45',stroke:n.cycle?'#ff667a':color(n.domain),'stroke-width':n.id===selected?3:1.3},g);const lines=wrapLabel(label(n),38),shown=lines.slice(0,2);if(lines.length>2)shown[1]=shown[1].slice(0,35)+'\u2026';const top=shown.length>1?14:23;shown.forEach((line,i)=>svgEl('text',{x:p.x+12,y:p.y+top+i*16,fill:'#eef4ff','font-family':'system-ui','font-size':14},g).textContent=line);svgEl('text',{x:p.x+12,y:p.y+43,fill:color(n.domain),'font-family':'system-ui','font-size':13},g).textContent=n.domain;}zoom();
 }
 function zoom(){applyGraphPan();if($('zoomLevel'))$('zoomLevel').textContent=Math.round(scale*100)+'%';const svg=$('graph');if(svg){svg.setAttribute('width',size.width*scale);svg.setAttribute('height',size.height*scale);}}
 function fit(){graphPan={x:0,y:0};scale=Math.max(0.15,Math.min(1,(($('graphViewport')||$('canvas')).clientWidth-20)/size.width));zoom();$('graphViewport')?.scrollTo(0,0);$('canvas').scrollTo(0,0);}
@@ -124,7 +143,7 @@ function render(){
     const {nodes,edges}=view(),mode=$('mode').value;
     destroyCytoscape();
     $('content').replaceChildren();$('graphOptions').style.display=(mode==='graph'||cytoGraph)?'flex':'none';
-    $('cytoOptions').style.display=cytoGraph?'flex':'none';
+    $('cytoOptions').style.display=cytoGraph?'flex':'none';describeCytoLayout();
     const kept=new Set(mode==='domains'?edges:reduced(edges));
     const marked=edges.map(e=>({...e,redundant:!kept.has(e)}));
     const redundantCount=marked.filter(e=>e.redundant).length;
@@ -150,6 +169,15 @@ for(const id of ['search','tests','cycles','direction','depth','reduce','layout'
 $('domain').onchange=()=>{selected=null;render();$('canvas').scrollTo(0,0);};$('mode').onchange=()=>{selected=null;render();$('canvas').scrollTo(0,0);};
 $('reset').onclick=()=>{graphPan={x:0,y:0};cytoscapeMemo=null;selected=null;$('search').value='';$('domain').value='';$('cycles').checked=false;$('tests').checked=false;$('mode').value='domains';$('direction').value='both';$('depth').value='1';$('reduce').checked=false;$('layout').value='focus';$('neighbors').checked=false;$('cytoLayout').value='levels';scale=1;render();};
 $('refresh').onclick=()=>window.location.reload();
+// The toolbars cost three rows; collapsing them gives the height back to the graph.
+function setControlsCollapsed(collapsed){
+    document.querySelector('header').classList.toggle('collapsed',collapsed);
+    const label=collapsed?'Show filters and options':'Hide filters and options';
+    $('toggleControls').setAttribute('aria-expanded',String(!collapsed));
+    $('toggleControls').title=label;$('toggleControls').setAttribute('aria-label',label);
+    resizeCytoscape();
+}
+$('toggleControls').onclick=()=>setControlsCollapsed(!document.querySelector('header').classList.contains('collapsed'));
 $('fit').onclick=fit;$('plus').onclick=()=>{scale=Math.min(3,scale+0.15);zoom();};$('minus').onclick=()=>{scale=Math.max(0.15,scale-0.15);zoom();};
 $('export').onclick=()=>{if(!$('graph'))return;const blob=new Blob([serializeGraph()],{type:'image/svg+xml'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='dotnet-dependencies.svg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
 function applyGraphPan(){const svg=$('graph');if(svg)svg.style.transform=`translate(${graphPan.x}px, ${graphPan.y}px)`;}
