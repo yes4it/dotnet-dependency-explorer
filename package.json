@@ -3,7 +3,7 @@
   "displayName": ".NET Dependency Explorer",
   "description": "Explore project references, redundant links and dependency cycles in an interactive offline graph.",
   "version": "0.4.0",
-  "publisher": "publisher-id-required",
+  "publisher": "YES4IT",
   "license": "MIT",
   "engines": {
     "vscode": "^1.95.0"

@@ -2,6 +2,7 @@ src/**
 tests/**
 scripts/**
 .github/**
+.vscode/**
 .test/**
 artifacts/**
 node_modules/**
