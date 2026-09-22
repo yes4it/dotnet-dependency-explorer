@@ -50,7 +50,7 @@ export function activate(context:vscode.ExtensionContext):void {
     const safe=(value:unknown)=>JSON.stringify(value).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
     const saved=context.workspaceState.get<Record<string,unknown>>(stateKey,{});
     const state=focus?{...saved,selectedUri:focus,scale:1,pan:{x:0,y:0},controls:{...(saved.controls as object||{}),mode:'graph',layout:'focus',depth:'1',domain:'',search:'',cycles:false}}:saved;
-    const scripts=['focus.js','explorer.js','bridge.js'].map(file=>`<script nonce="${nonce}" src="${webview.asWebviewUri(vscode.Uri.joinPath(root,file))}"></script>`).join('\n');
+    const scripts=['vendor/cytoscape.min.js','focus.js','cytoscape-view.js','explorer.js','bridge.js'].map(file=>`<script nonce="${nonce}" src="${webview.asWebviewUri(vscode.Uri.joinPath(root,file))}"></script>`).join('\n');
     template=template.replace('<meta charset="utf-8">',`<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; img-src ${webview.cspSource} data:;">`);
     return template.replace(/<script>[\s\S]*?<\/script>/,()=>`<script nonce="${nonce}">let D=${safe(graph)};window.initialState=${safe(state)};</script>\n${scripts}`);
   }
@@ -80,6 +80,9 @@ export function activate(context:vscode.ExtensionContext):void {
         }else if(message.type==='export'&&typeof message.svg==='string'&&message.svg.length<10_000_000&&message.svg.startsWith('<svg')){
           const destination=await vscode.window.showSaveDialog({title:'Export dependency graph',filters:{SVG:['svg']},saveLabel:'Export SVG'});
           if(destination)await vscode.workspace.fs.writeFile(destination,Buffer.from(message.svg,'utf8'));
+        }else if(message.type==='exportPng'&&typeof message.png==='string'&&message.png.length<40_000_000&&message.png.startsWith('data:image/png;base64,')){
+          const destination=await vscode.window.showSaveDialog({title:'Export dependency graph',filters:{PNG:['png']},saveLabel:'Export PNG'});
+          if(destination)await vscode.workspace.fs.writeFile(destination,Buffer.from(message.png.slice('data:image/png;base64,'.length),'base64'));
         }
       }catch(error){void vscode.window.showErrorMessage(`Dependency Explorer: ${String(error)}`);}
     },null,context.subscriptions);

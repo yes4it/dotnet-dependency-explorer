@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0
+
+- Add a **Cytoscape graph** view: the same filtered graph rendered on canvas, with levels, force-directed, breadth-first, concentric, circle and grid layouts.
+- Highlight a project's neighbourhood on hover and show its full name, domain, level, path and reference counts.
+- Select a project inside the view to filter around it without leaving it; **Open focus view** switches to the three-column layout.
+- Export the current graph as PNG through the VS Code save dialog.
+- Bundle Cytoscape 3.34.3 (MIT) in `media/vendor`; the extension still runs fully offline.
+
 ## 0.1.4
 
 - Keep panning inside a dedicated graph viewport, below the legend and status text.

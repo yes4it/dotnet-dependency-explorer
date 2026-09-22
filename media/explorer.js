@@ -5,8 +5,9 @@ const color = d => palette[domains.indexOf(d) % palette.length];
 let selected = null, scale = 1, size = {width:1000,height:600};
 let graphPan={x:0,y:0};
 document.querySelector('header').innerHTML = `<h1>.NET Dependency Explorer</h1><div id="status"></div>
-<nav><button id="refresh" class="icon-button" title="Refresh project dependencies" aria-label="Refresh project dependencies"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M19 12a7 7 0 1 0-2 5"/></svg></button><label>View <select id="mode"><option value="domains">Domains</option><option value="graph">Project graph</option><option value="matrix">Project matrix</option></select></label><label>Domain <select id="domain"><option value="">All</option></select></label><input id="search" placeholder="Search projects…" aria-label="Search projects"><label><input id="tests" type="checkbox"> Tests</label><label><input id="cycles" type="checkbox"> Cycles only</label><button id="reset">Reset</button></nav>
-<nav id="graphOptions"><label>Layout <select id="layout"><option value="focus">Project focus</option><option value="levels">By level</option></select></label><label id="neighborsOption"><input id="neighbors" type="checkbox"> Relations between neighbors</label><label>Explore <select id="direction"><option value="both">Both directions</option><option value="out">Dependencies</option><option value="in">Used by</option></select></label><label>Depth <select id="depth"><option value="1">1 hop</option><option value="2">2 hops</option><option value="99">Transitive</option></select></label><label title="Hide A → C when another visible path connects A to C."><input id="reduce" type="checkbox"> Hide redundant links</label><button id="fit">Fit</button><button id="minus" aria-label="Zoom out">−</button><output id="zoomLevel" aria-live="polite">100%</output><button id="plus" aria-label="Zoom in">+</button><button id="export">Export SVG</button></nav>`;
+<nav><button id="refresh" class="icon-button" title="Refresh project dependencies" aria-label="Refresh project dependencies"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M19 12a7 7 0 1 0-2 5"/></svg></button><label>View <select id="mode"><option value="domains">Domains</option><option value="graph">Project graph</option><option value="cytoscape">Cytoscape graph</option><option value="matrix">Project matrix</option></select></label><label>Domain <select id="domain"><option value="">All</option></select></label><input id="search" placeholder="Search projects…" aria-label="Search projects"><label><input id="tests" type="checkbox"> Tests</label><label><input id="cycles" type="checkbox"> Cycles only</label><button id="reset">Reset</button></nav>
+<nav id="graphOptions"><label>Layout <select id="layout"><option value="focus">Project focus</option><option value="levels">By level</option></select></label><label id="neighborsOption"><input id="neighbors" type="checkbox"> Relations between neighbors</label><label>Explore <select id="direction"><option value="both">Both directions</option><option value="out">Dependencies</option><option value="in">Used by</option></select></label><label>Depth <select id="depth"><option value="1">1 hop</option><option value="2">2 hops</option><option value="99">Transitive</option></select></label><label title="Hide A → C when another visible path connects A to C."><input id="reduce" type="checkbox"> Hide redundant links</label><button id="fit">Fit</button><button id="minus" aria-label="Zoom out">−</button><output id="zoomLevel" aria-live="polite">100%</output><button id="plus" aria-label="Zoom in">+</button><button id="export">Export SVG</button></nav>
+<nav id="cytoOptions"><label>Cytoscape layout <select id="cytoLayout"></select></label><button id="cytoRelayout">Re-run layout</button><button id="cytoFit">Fit</button><output id="cytoZoom" aria-live="polite">100%</output><button id="cytoFocus">Open focus view</button><button id="cytoPng">Export PNG</button></nav>`;
 $('canvas').innerHTML = '<div id="count" aria-live="polite"></div><div id="content"></div>';
 document.querySelector('aside').innerHTML = `<h2 id="detailTitle">Most referenced projects</h2><div id="details"></div><details><summary>How to read this view</summary><p>A → B means A references B. Blue: a dependency of the selected project. Green: a project that uses it. Red: an edge in a project cycle. Dashed orange: a redundant reference because another path exists in the filtered view. It is still a real project reference.</p><p>Labels show complete project names unless you configure label prefixes. Hover a card or open its details for the full name.</p><p>Domains are inferred from project names. Reciprocal domain relationships do not prove that individual projects form a cycle.</p><p>Declared ProjectReference items across the open workspace. MSBuild conditions and imported files are not evaluated. NuGet, classes, namespaces and network calls are outside this analysis.</p><div id="warnings"></div></details>`;
 const style = document.createElement('style');
@@ -14,6 +15,7 @@ style.textContent = `.icon-button{display:inline-flex;align-items:center;justify
 style.textContent+="#canvas:has(#graph){display:flex;flex-direction:column;overflow:hidden;cursor:auto}#content:has(#graph){display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}#content:has(#graph)>p,#content:has(#graph)>button{flex-shrink:0}#graphViewport{position:relative;isolation:isolate;contain:paint;overflow:auto;flex:1;min-height:100px;border:1px solid #344156;border-radius:8px;cursor:grab;background:#101827}#graphViewport #graph{position:relative}#edgeInfo{position:static!important;z-index:auto!important} ";
 document.head.append(style);
 for (const d of domains) {const o=document.createElement('option');o.value=d;o.textContent=d;$('domain').append(o);}
+for (const [value,name] of cytoscapeLayouts) {const o=document.createElement('option');o.value=value;o.textContent=name;$('cytoLayout').append(o);}
 $('status').textContent = `${D.nodes.length} projects · ${D.edges.length} references · ${D.cycles.length} project cycle group(s)`;
 $('warnings').textContent = D.unresolved.length ? `${D.unresolved.length} unresolved project references (missing files or unevaluated expressions).` : 'All project references were resolved.';
 function text(tag,value,parent){const e=document.createElement(tag);e.textContent=value;parent.append(e);return e;}
@@ -113,33 +115,40 @@ function graph(nodes,edges){
 function zoom(){applyGraphPan();if($('zoomLevel'))$('zoomLevel').textContent=Math.round(scale*100)+'%';const svg=$('graph');if(svg){svg.setAttribute('width',size.width*scale);svg.setAttribute('height',size.height*scale);}}
 function fit(){graphPan={x:0,y:0};scale=Math.max(0.15,Math.min(1,(($('graphViewport')||$('canvas')).clientWidth-20)/size.width));zoom();$('graphViewport')?.scrollTo(0,0);$('canvas').scrollTo(0,0);}
 function render(){
-    const focused=selected!==null&&$('layout').value==='focus';
+    const cytoGraph=$('mode').value==='cytoscape';
+    const focused=!cytoGraph&&selected!==null&&$('layout').value==='focus';
     if(focused)$('depth').value='1';
     $('depth').disabled=focused;$('neighborsOption').style.display=focused?'':'none';
+    // The canvas renderer brings its own layout, zoom and export controls.
+    for(const el of [$('layout').closest('label'),$('fit'),$('minus'),$('zoomLevel'),$('plus'),$('export')])el.style.display=cytoGraph?'none':'';
     const {nodes,edges}=view(),mode=$('mode').value;
-    $('content').replaceChildren();$('graphOptions').style.display=mode==='graph'?'flex':'none';
+    destroyCytoscape();
+    $('content').replaceChildren();$('graphOptions').style.display=(mode==='graph'||cytoGraph)?'flex':'none';
+    $('cytoOptions').style.display=cytoGraph?'flex':'none';
     const kept=new Set(mode==='domains'?edges:reduced(edges));
     const marked=edges.map(e=>({...e,redundant:!kept.has(e)}));
     const redundantCount=marked.filter(e=>e.redundant).length;
-    const hidden=mode==='graph'&&$('reduce').checked;
+    const hidden=(mode==='graph'||cytoGraph)&&$('reduce').checked;
     const drawn=hidden?marked.filter(e=>!e.redundant):marked;
     $('count').textContent=`${nodes.length} visible projects · ${edges.length} references${mode!=='domains'?` · ${redundantCount} redundant links ${hidden?'hidden':'in orange'}`:''}${selected!==null?` · Focus : ${D.nodes[selected].name}`:''}`;
     if(mode!=='domains'){
         const legend=text('p','',$('content'));
         const key=text('span','Orange: redundant reference',legend);
         key.style.color='#f5b454';
-        if(mode==='graph')key.textContent='Dashed orange: redundant reference · other colors: standard reference or cycle';
+        if(mode==='graph'||cytoGraph)key.textContent='Dashed orange: redundant reference · other colors: standard reference or cycle';
     }
+    if(cytoGraph)text('p','Canvas view: drag to pan, scroll to zoom, drag a project to move it. Click a project to filter around it, click the background to clear. Hover for full names.',$('content'));
     if(!nodes.length)text('p','No projects match these filters.',$('content'));
     else if(mode==='domains')overview(nodes,edges);
     else if(mode==='matrix')matrix(nodes,marked);
+    else if(cytoGraph)cytoscapeGraph(nodes,drawn);
     else if(focused)focusGraph(nodes,drawn);
     else graph(nodes,drawn);
     sidebar();
 }
-for(const id of ['search','tests','cycles','direction','depth','reduce','layout','neighbors'])$(id).oninput=render;
+for(const id of ['search','tests','cycles','direction','depth','reduce','layout','neighbors','cytoLayout'])$(id).oninput=render;
 $('domain').onchange=()=>{selected=null;render();$('canvas').scrollTo(0,0);};$('mode').onchange=()=>{selected=null;render();$('canvas').scrollTo(0,0);};
-$('reset').onclick=()=>{graphPan={x:0,y:0};selected=null;$('search').value='';$('domain').value='';$('cycles').checked=false;$('tests').checked=false;$('mode').value='domains';$('direction').value='both';$('depth').value='1';$('reduce').checked=false;$('layout').value='focus';$('neighbors').checked=false;scale=1;render();};
+$('reset').onclick=()=>{graphPan={x:0,y:0};cytoscapeMemo=null;selected=null;$('search').value='';$('domain').value='';$('cycles').checked=false;$('tests').checked=false;$('mode').value='domains';$('direction').value='both';$('depth').value='1';$('reduce').checked=false;$('layout').value='focus';$('neighbors').checked=false;$('cytoLayout').value='levels';scale=1;render();};
 $('refresh').onclick=()=>window.location.reload();
 $('fit').onclick=fit;$('plus').onclick=()=>{scale=Math.min(3,scale+0.15);zoom();};$('minus').onclick=()=>{scale=Math.max(0.15,scale-0.15);zoom();};
 $('export').onclick=()=>{if(!$('graph'))return;const blob=new Blob([serializeGraph()],{type:'image/svg+xml'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='dotnet-dependencies.svg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};

@@ -1,5 +1,5 @@
 const vscodeApi=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():null;
-const controlIds=['mode','domain','search','tests','cycles','direction','depth','reduce','layout','neighbors'];
+const controlIds=['mode','domain','search','tests','cycles','direction','depth','reduce','layout','neighbors','cytoLayout'];
 let restoring=true;
 function saveView(){
     if(restoring||!vscodeApi)return;
@@ -14,6 +14,9 @@ const baseZoom=zoom;
 zoom=function(){baseZoom();saveView();};
 $('refresh').onclick=()=>{saveView();if(vscodeApi)vscodeApi.postMessage({type:'refresh'});else window.location.reload();};
 $('export').onclick=()=>{if(!$('graph'))return;const svg=serializeGraph();if(vscodeApi)vscodeApi.postMessage({type:'export',svg});};
+// Webviews cannot download through an anchor, so the host writes the file.
+const browserSaveGraphImage=saveGraphImage;
+saveGraphImage=function(dataUri){if(vscodeApi)vscodeApi.postMessage({type:'exportPng',png:dataUri});else browserSaveGraphImage(dataUri);};
 const state=window.initialState||vscodeApi?.getState()||{};
 for(const id of controlIds){const value=state.controls?.[id];if(value!==undefined){if($(id).type==='checkbox')$(id).checked=Boolean(value);else $(id).value=String(value);}}
 const savedNode=D.nodes.find(n=>n.uri===state.selectedUri);

@@ -12,10 +12,11 @@ Explore `.csproj` references in an interactive graph or matrix, directly inside 
 - **Domain overview:** group projects with configurable keyword rules.
 - **Global graph:** explore by level, direction and depth.
 - **Dependency matrix:** read references without overlapping arrows.
+- **Cytoscape graph:** the same filtered graph on canvas, with levels, force-directed, breadth-first, concentric, circle and grid layouts.
 - **Cycle detection:** highlight actual cycles between projects in red.
 - **Redundant references:** dashed orange lines show direct references with another path in the filtered graph. They are still real references; the extension does not suggest deleting them automatically.
 - **Interactive inspection:** hover connections, pin an edge, and reveal relationships between neighbors.
-- **Editor integration:** open a selected `.csproj`, refresh automatically after project changes, and export SVG.
+- **Editor integration:** open a selected `.csproj`, refresh automatically after project changes, and export SVG or PNG.
 - **Saved view:** retain the selected project, filters, zoom and scroll position per workspace.
 
 ![Dependency matrix with redundant references and a cycle](https://raw.githubusercontent.com/yes4it/dotnet-dependency-explorer/main/assets/project-matrix.png)
@@ -35,6 +36,18 @@ The circular-arrow **Refresh** button at the start of the toolbar rescans projec
 Drag the graph background with the left mouse button to pan. The middle mouse button also works over cards. **Fit** resets the offset; refresh preserves it.
 
 The **- / +** controls zoom from 15% to 300%; **Fit** fits the graph width. Selecting a new project opens it at 100%. Use **Relations between neighbors** to show secondary links in project focus. Clicking a connection pins it; **Clear edge selection** or Escape clears it.
+
+## Cytoscape graph
+
+Choose **Cytoscape graph** in the View menu. Domain, search, tests, cycles, direction, depth and **Hide redundant links** apply exactly as in the project graph; only the renderer changes.
+
+- Pick a layout: *Levels* follows dependency order, *Force-directed* spreads projects apart, *Breadth-first* starts from the selected project, *Concentric* puts the most referenced projects in the middle, *Circle* and *Grid* are fixed arrangements.
+- Drag to pan, scroll to zoom, drag a project to move it. **Fit** reframes the graph and **Re-run layout** recomputes it.
+- Clicking a project filters around it without leaving the view; clicking the background clears the selection. **Open focus view** switches to the three-column layout.
+- Hovering a project or an arrow isolates its neighbourhood and shows the full name, domain, level, path and reference counts.
+- **Export PNG** saves the whole graph through the VS Code save dialog, capped at 4096 px per side.
+
+Labels are hard to read on a large graph fitted to the viewport. Filter or zoom in, and rely on hover for full names.
 
 ## Configuration
 
@@ -73,7 +86,7 @@ npm run check
 npm run demo
 ```
 
-The analyzer and extension host are TypeScript in `src/`. The framework-free English webview is in `media/`. See `PUBLISHING.md` in the source repository for release preparation.
+The analyzer and extension host are TypeScript in `src/`. The framework-free English webview is in `media/`, with the bundled Cytoscape build in `media/vendor/`. See `PUBLISHING.md` in the source repository for release preparation.
 
 ## Feedback and license
 
