@@ -99,7 +99,7 @@ Full project names remain available in tooltips and details.
 
 ## Analysis scope
 
-The extension reads declared `ProjectReference` items in `.csproj` files across all open workspace folders. It excludes `bin`, `obj`, `.git`, `.vs`, `node_modules` and `packages` directories. Missing files, references outside the open workspace and unresolved expressions are reported.
+The extension reads declared `ProjectReference` items in `.csproj` files across all open workspace folders. It excludes `bin`, `obj`, `.git`, `.vs`, `.claude`, `claude`, `node_modules` and `packages` directories, including project copies in Claude worktrees. Missing files, references outside the open workspace and unresolved expressions are reported.
 
 MSBuild conditions and imported `.props`/`.targets` files are **not evaluated**. Conditional references are included as declarations. This is not analysis of NuGet packages, classes, namespaces, dependency injection or runtime/network calls. Workspace code is never executed by the analyzer.
 

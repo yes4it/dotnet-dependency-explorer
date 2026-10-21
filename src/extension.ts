@@ -5,7 +5,7 @@ import { analyzeProjects, GraphData, ProjectInput, DomainRule, defaultDomainRule
 
 const viewType='dotnetDependencyExplorer.graph';
 const stateKey='dotnetDependencyExplorer.viewState';
-const exclude='**/{node_modules,bin,obj,.git,.vs,packages}/**';
+const exclude='**/{node_modules,bin,obj,.git,.vs,.claude,claude,packages}/**';
 export function activate(context:vscode.ExtensionContext):void {
   const sidebarActions=[
     {label:'Open dependency graph',command:'dotnetDependencyExplorer.open',icon:'type-hierarchy',description:'Explore project references'},

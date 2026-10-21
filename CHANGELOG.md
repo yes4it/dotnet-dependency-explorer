@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Exclude `.claude` and `claude` directories from project discovery so copied projects do not appear as duplicates in the graph.
+
 ## 0.4.1
 
 - Refresh the listing screenshots, which still showed 0.1.4, and illustrate the pasta scale and the Cytoscape canvas.
